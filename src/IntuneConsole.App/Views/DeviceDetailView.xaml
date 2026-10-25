@@ -79,6 +79,38 @@
                 </Border>
             </Grid>
 
+            <!-- PowerShell via Datto -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16" BorderBrush="#C9BEEB">
+                <StackPanel>
+                    <DockPanel>
+                        <Button x:Name="RemoteButton" DockPanel.Dock="Right" Content="Open Web Remote ↗" Click="Remote_Click" VerticalAlignment="Center"
+                                ToolTip="Interactive session in Datto: screen control, a live PowerShell/terminal and file transfer"/>
+                        <StackPanel>
+                            <TextBlock Text="Run PowerShell" Style="{StaticResource H2}"/>
+                            <TextBlock Text="Runs as SYSTEM on the device through Datto; output appears here, usually in 10–30 seconds. Each run is separate: use Web Remote for an interactive shell."
+                                       Style="{StaticResource Label}" Foreground="{StaticResource DattoBrush}" Margin="0,2,0,10" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" x:Name="DeleteSnippetButton" Content="Delete" Click="DeleteSnippet_Click" Margin="8,0,0,0"
+                                ToolTip="Delete the selected saved command (yours only)"/>
+                        <Button DockPanel.Dock="Right" Content="Save as…" Click="SaveSnippet_Click" Margin="8,0,0,0"
+                                ToolTip="Save the script below as one of your commands"/>
+                        <ComboBox x:Name="SnippetCombo" SelectionChanged="SnippetCombo_SelectionChanged" AutomationProperties.Name="Saved commands"/>
+                    </DockPanel>
+                    <TextBox x:Name="ScriptBox" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="13"
+                             Height="110" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+                             AutomationProperties.Name="PowerShell script"/>
+                    <DockPanel Margin="0,8,0,8">
+                        <Button x:Name="RunScriptButton" DockPanel.Dock="Left" Content="Run on this device" Style="{StaticResource DattoButton}" Click="RunScript_Click"/>
+                        <TextBlock x:Name="ScriptStatus" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </DockPanel>
+                    <TextBox x:Name="ScriptOutput" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12.5" Height="200"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+                             Background="#15191E" Foreground="#E6E9ED" BorderThickness="0" Padding="10" AutomationProperties.Name="Script output"/>
+                </StackPanel>
+            </Border>
+
             <!-- Credentials + ticket summary -->
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>

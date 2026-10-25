@@ -10,6 +10,9 @@ A Windows desktop app for your admin team that puts Intune troubleshooting and D
 - **"Why isn't this installing?"** for any app on a device: walks assignment, exclusions, intent, assignment filters (evaluated against the device), requirements, dependencies and the install result, and says which gate is blocking.
 - **Handover readiness check:** Autopilot, check-in, compliance, BitLocker, apps, primary user, Datto agent and LAPS backup as one pass/fail checklist.
 - **Bulk actions:** sync, collect diagnostics, run a Remediation, restart the IME, clear the IME cache or restart devices across many devices at once, from a selection or a pasted list of names or serials.
+- **Run PowerShell** on a device from the device page (through Datto, output shown in the console) with a library of ready-made commands and your own saved ones, plus one-click **Datto Web Remote** for an interactive session.
+- **Health score** (0–100) for every device, with the reasons, so the worst devices sort to the top.
+- **Offboarding checklist** for a leaver: every device from Intune and the asset register, what's been returned, and wipe, retire or check in from one window.
 - **Asset register** in a SharePoint list shared by the team: asset tag, status (in use, in stock, loaner, repair, retired, lost), assignment with full history, purchase details and Dell warranty. It's joined to Intune live, with built-in reports, check-out and check-in with a printable handover sheet, and CSV import and export.
 - **Record health check** that compares Intune, Entra ID, Autopilot and Datto and lists duplicates, stale records and devices missing from one of them.
 - **Log viewer** that downloads and unpacks Intune diagnostics bundles, parses the Intune Management Extension logs, highlights errors and suggests a likely cause with the log line it came from.
@@ -46,6 +49,7 @@ In the [Entra admin center](https://entra.microsoft.com) go to **Identity > Appl
    - `DeviceLocalCredential.Read.All` and `BitlockerKey.Read.All` (reveal LAPS passwords and BitLocker keys, added in v0.3)
    - `GroupMember.Read.All` (group membership for the "why isn't this installing?" check, added in v0.3.1)
    - `Sites.Selected` (the asset register's SharePoint site only, added in v0.4; see section 7)
+   - `User.RevokeSessions.All` ("Sign out everywhere" in the offboarding checklist, added in v0.5)
 7. Click **Grant admin consent for <your tenant>**.
 
    The app asks for whatever permissions have admin consent, so when a new version needs another permission, adding it here and granting consent is all it takes. Until then, only the feature that needs it shows a message.
@@ -80,7 +84,7 @@ The console lists every Remediation in your tenant, so your existing ones can be
 
 **Each admin generates their own key:** **Setup > Users >** click your user **> Generate API Keys**. Copy the API key, the secret, and the API URL shown on that page (for example `https://merlot-api.centrastage.net`). The secret can't be shown again after you leave the page.
 
-**Import the four components** (once): **Automation > Components > New Component**, category **Scripts**, script type **PowerShell**. Paste each script from `scripts\datto` and use these exact names (or change the names in the console's Settings to match yours):
+**Import the five components** (once): **Automation > Components > New Component**, category **Scripts**, script type **PowerShell**. Paste each script from `scripts\datto` and use these exact names (or change the names in the console's Settings to match yours):
 
 | Component name | Script | Variables to add (all type String) |
 | --- | --- | --- |
@@ -88,6 +92,7 @@ The console lists every Remediation in your tenant, so your existing ones can be
 | Intune Console - Clear IME Download Cache | `Clear-IMEDownloadCache.ps1` | none |
 | Intune Console - Reset Win32 App | `Reset-Win32App.ps1` | `AppId` |
 | Intune Console - Push File | `Push-File.ps1` | `FileUrl`, `FileName`, `Destination`, `Sha256`, `Overwrite` |
+| Intune Console - Run PowerShell | `Run-PowerShell.ps1` | `ScriptB64` |
 
 The console matches Intune devices to Datto devices by hostname.
 
@@ -122,7 +127,7 @@ To code-sign the exe with a certificate in your store, add `-CertThumbprint <thu
 - **Detection rules:** Use a custom detection script → upload `out\Detect.ps1`
 - **Assignments:** Required, to your admins group.
 
-It installs to `C:\Program Files\IntuneConsole` with a Start Menu shortcut. For a new version, run `.\build.ps1 -Version 0.5.0` and supersede or update the app; the detection script checks the version.
+It installs to `C:\Program Files\IntuneConsole` with a Start Menu shortcut. For a new version, run `.\build.ps1 -Version 0.6.0` and supersede or update the app; the detection script checks the version.
 
 ## 6. File drop for "Push file" (optional, ~10 min)
 
@@ -188,6 +193,8 @@ Asset records live in two SharePoint lists, **Assets** and **Asset History**, on
 | Asset register says the list wasn't found | Run `Setup-AssetRegister.ps1` against the same site URL. |
 | Asset register says access denied | Check `Sites.Selected` has consent, the setup script granted the app the site, and the admin is a member of the site. |
 | "Dell sign-in failed" | Check the TechDirect client ID and secret; new keys can take a day to activate. |
+| PowerShell output says Datto didn't return it | The job ran; open it in Datto's job results. Send me the output format and I'll adjust the console. |
+| "Sign out everywhere" fails | Add `User.RevokeSessions.All` with consent; the admin also needs a role such as User Administrator. |
 | Can't find someone by a partial name | Name search matches whole words from the start ("john", "smi"), not the middle of a word. UPN, email and employee ID match from the start. |
 
 If the build fails, copy the error lines and send them over.

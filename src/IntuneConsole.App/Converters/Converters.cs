@@ -98,3 +98,25 @@ public sealed class KindBackgroundConverter : IValueConverter
         return br;
     }
 }
+
+/// <summary>Health grade (Good/Fair/Poor) to the shared tone words.</summary>
+public sealed class GradeToneConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value as string switch
+    {
+        "Good" => "success",
+        "Fair" => "pending",
+        "Poor" => "failed",
+        _ => "",
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public sealed class GradeForegroundConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        new PillForegroundConverter().Convert(new GradeToneConverter().Convert(value, targetType, parameter, culture), targetType, parameter, culture);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}

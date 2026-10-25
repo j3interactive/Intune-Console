@@ -31,6 +31,8 @@
         <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
         <conv:KindGlyphConverter x:Key="KindGlyph"/>
         <conv:KindBackgroundConverter x:Key="KindBg"/>
+        <conv:GradeToneConverter x:Key="GradeTone"/>
+        <conv:GradeForegroundConverter x:Key="GradeFg"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
         <Style TargetType="{x:Type Window}">

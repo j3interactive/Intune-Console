@@ -8,7 +8,7 @@ on:
       version:
         description: Version number (e.g. 0.1.0)
         required: false
-        default: 0.4.0
+        default: 0.5.0
 
 jobs:
   build:
@@ -22,7 +22,7 @@ jobs:
 
       - name: Build and package
         shell: pwsh
-        run: ./build.ps1 -Version "${{ github.event.inputs.version || '0.4.0' }}"
+        run: ./build.ps1 -Version "${{ github.event.inputs.version || '0.5.0' }}"
 
       - name: Upload Intune package
         uses: actions/upload-artifact@v4

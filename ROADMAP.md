@@ -70,7 +70,7 @@ Each device gets an asset record that combines live data with fields you maintai
 
 ## v0.5: Remote control and PowerShell
 
-### Remote control · Planned
+### Remote control · Shipped in v0.5.0
 
 Datto already does this well, so the console will hand off to Datto instead of building its own.
 
@@ -78,7 +78,7 @@ Datto already does this well, so the console will hand off to Datto instead of b
 - Datto Web Remote includes screen control, a remote PowerShell or terminal session, and file transfer. A full interactive shell stays there.
 - Remote sessions are logged in Datto's activity log under the admin's own Datto account.
 
-### Run PowerShell from the console · Planned
+### Run PowerShell from the console · Shipped in v0.5.0
 
 For quick, one-off commands without opening a full remote session:
 
@@ -90,7 +90,7 @@ For quick, one-off commands without opening a full remote session:
 
 This is not an interactive shell. Each run is a separate job, so it can't keep state between commands or answer prompts. Use Datto Web Remote for that.
 
-**To verify before building:** the exact Datto API call for reading a job's output (stdout/stderr) for a device.
+**Still to confirm:** the console reads job output from `/v2/job/{job}/results/{device}/stdout` (not in Datto's public docs). Confirm on the first real run.
 
 ---
 
@@ -109,9 +109,9 @@ These fill gaps that come up in day-to-day troubleshooting. You asked for these 
 ### Useful
 
 - **Primary user mismatch · Shipped in v0.3.1** (in the Record health check). Flag devices where the person signing in every day isn't the Intune primary user. This breaks user-targeted apps and self-service.
-- **Health score.** One number per device from compliance, last check-in, disk space, pending reboot, failing apps and Datto alerts. The device list can sort by it so the worst devices come first.
+- **Health score · Shipped in v0.5.0** (without pending reboot, failing apps and Datto alerts, which need a per-device call; they could be added to the device page). One number per device from compliance, last check-in, disk space, pending reboot, failing apps and Datto alerts. The device list can sort by it so the worst devices come first.
 - **Bulk actions · Shipped in v0.3.1.** Select many devices, or paste a list of names or serials, and sync, collect diagnostics, run a remediation or run a Datto component on all of them, with a progress view.
-- **Offboarding checklist.** For a leaver: list their devices, mark them for return, set the asset status, retire or wipe once returned, and record who did each step.
+- **Offboarding checklist · Shipped in v0.5.0.** For a leaver: list their devices, mark them for return, set the asset status, retire or wipe once returned, and record who did each step.
 - **New device readiness · Shipped in v0.3.1.** Before handing over a device: Autopilot registered, correct group tag, enrolled, compliant, required apps installed, BitLocker on. Shown as one green or red checklist.
 
 ### Later
@@ -150,4 +150,14 @@ All of them are delegated, so each admin can still only see and do what their ow
 
 ## Open questions
 
-1. Next: the offboarding checklist (uses the asset register), then remote control and PowerShell (v0.5), then the health score. Change the order if you prefer.
+Everything planned through v0.5 has shipped. What's left:
+
+- **First real build and test on Windows.** The most valuable next step: compile, sign in, and fix what the live tenant, Datto and SharePoint turn up.
+- Datto activity (jobs, alerts, remote sessions) in the device timeline.
+- Datto hardware audit (CPU, RAM, disk) and the Autopilot group tag on the asset window.
+- Shared notes per device and user (in the SharePoint site).
+- Teams alerts for devices that drop out of compliance or stop checking in.
+- Saved custom filters.
+- Push file via Intune for devices offline in Datto.
+
+1. Which of these do you want after the first test build?

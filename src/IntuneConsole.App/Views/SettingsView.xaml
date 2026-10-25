@@ -69,7 +69,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="Restart IME" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="0" Grid.Column="1" x:Name="CompRestartBox" Margin="0,4" AutomationProperties.Name="Restart IME component"/>
@@ -79,6 +79,8 @@
                         <TextBox Grid.Row="2" Grid.Column="1" x:Name="CompResetBox" Margin="0,4" AutomationProperties.Name="Reset app component"/>
                         <TextBlock Grid.Row="3" Text="Push file" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="3" Grid.Column="1" x:Name="CompPushBox" Margin="0,4" AutomationProperties.Name="Push file component"/>
+                        <TextBlock Grid.Row="4" Text="Run PowerShell" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" x:Name="CompPsBox" Margin="0,4" AutomationProperties.Name="Run PowerShell component"/>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <Button Content="Test Datto connection" Click="TestDatto_Click"/>

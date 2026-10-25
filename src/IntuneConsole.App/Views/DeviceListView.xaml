@@ -16,6 +16,8 @@
                          ToolTip="Filter by device, user, UPN, serial, model or MAC address"
                          AutomationProperties.Name="Search devices"/>
                 <Button Content="Refresh" Margin="8,0,0,0" Click="Refresh_Click"/>
+                <Button Content="Remote (Datto)" Margin="8,0,0,0" Click="Remote_Click"
+                        ToolTip="Open Datto Web Remote for the selected device: screen control, PowerShell and file transfer"/>
                 <Button Content="Bulk action…" Margin="8,0,0,0" Click="Bulk_Click"
                         ToolTip="Run one action on the selected devices (Ctrl/Shift-click to select several), or paste a list"/>
                 <Button Content="Export CSV" Margin="8,0,0,0" Click="Export_Click"/>
@@ -82,6 +84,9 @@
                                          Content="Datto offline" Checked="Filter_Changed"/>
                             <RadioButton x:Name="FilterNotInDatto" Style="{StaticResource Chip}" GroupName="Filter"
                                          Content="Not in Datto" Checked="Filter_Changed"/>
+                            <RadioButton x:Name="FilterPoorHealth" Style="{StaticResource Chip}" GroupName="Filter"
+                                         Content="Poor health" Checked="Filter_Changed"
+                                         ToolTip="Health score under 60: worst devices first"/>
                         </WrapPanel>
                     </DockPanel>
                 </Border>
@@ -89,6 +94,17 @@
                 <DataGrid x:Name="DeviceGrid" SelectionMode="Extended" MouseDoubleClick="Grid_MouseDoubleClick" PreviewKeyDown="Grid_PreviewKeyDown"
                           AutomationProperties.Name="Devices">
                     <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="HEALTH" Width="90" SortMemberPath="HealthValue">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Pill}" Tag="{Binding Health.Grade, Converter={StaticResource GradeTone}}"
+                                            ToolTip="{Binding Health.ReasonsText}">
+                                        <TextBlock Text="{Binding HealthValue}" Style="{StaticResource PillText}"
+                                                   Foreground="{Binding Health.Grade, Converter={StaticResource GradeFg}}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="DEVICE" Width="170" SortMemberPath="DeviceName">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

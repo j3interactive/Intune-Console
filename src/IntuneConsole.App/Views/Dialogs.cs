@@ -25,19 +25,19 @@ public static class Dialogs
     };
 
     /// <summary>Asks why a secret is being revealed. Returns null if cancelled.</summary>
-    public static string? AskReason(string title, string message)
+    public static string? AskReason(string title, string message, string fieldLabel = "Reason (ticket number or short note)", string okText = "Show")
     {
         var win = NewWindow(title, 460);
         var panel = new StackPanel { Margin = new Thickness(24) };
         panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
-        panel.Children.Add(new TextBlock { Text = "Reason (ticket number or short note)", FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(new TextBlock { Text = fieldLabel, FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 4) });
         var box = new TextBox();
-        System.Windows.Automation.AutomationProperties.SetName(box, "Reason");
+        System.Windows.Automation.AutomationProperties.SetName(box, fieldLabel);
         panel.Children.Add(box);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
         var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
-        var ok = new Button { Content = "Show", IsDefault = true, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0),
+        var ok = new Button { Content = okText, IsDefault = true, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0),
                               Style = (Style)Application.Current.FindResource("PrimaryButton"), HorizontalContentAlignment = HorizontalAlignment.Center };
         string? result = null;
         ok.Click += (_, _) =>

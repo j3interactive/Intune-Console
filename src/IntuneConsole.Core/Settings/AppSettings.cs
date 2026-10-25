@@ -16,6 +16,7 @@ public sealed class AppSettings
     public string DattoClearCacheComponent { get; set; } = "Intune Console - Clear IME Download Cache";
     public string DattoResetAppComponent { get; set; } = "Intune Console - Reset Win32 App";
     public string DattoPushFileComponent { get; set; } = "Intune Console - Push File";
+    public string DattoRunPowerShellComponent { get; set; } = "Intune Console - Run PowerShell";
 
     // File drop (Azure Blob container used to hand files to the Datto push component)
     public string FileDropContainerUrl { get; set; } = "";   // https://<account>.blob.core.windows.net/<container>

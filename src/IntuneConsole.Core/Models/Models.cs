@@ -19,6 +19,8 @@ public sealed class ManagedDevice
     public string? AzureAdDeviceId { get; init; }
     public string? OperatingSystem { get; init; }
     public DateTimeOffset? EnrolledDateTime { get; init; }
+    public long? FreeStorageBytes { get; init; }
+    public long? TotalStorageBytes { get; init; }
     public string? WiFiMacAddress { get; init; }
     public string? UserId { get; init; }
     public bool IsWindows => OperatingSystem?.StartsWith("Windows", StringComparison.OrdinalIgnoreCase) ?? true;
@@ -38,8 +40,15 @@ public sealed class ManagedDevice
     private static bool Has(string? s, string q) => s?.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
     private static string Normalize(string? s) => new string((s ?? "").Where(char.IsLetterOrDigit).ToArray());
 
+    private DattoDevice? _datto;
+    private Diagnostics.HealthScore.Result? _health;
+
     /// <summary>Matched Datto device, if any (by hostname).</summary>
-    public DattoDevice? Datto { get; set; }
+    public DattoDevice? Datto { get => _datto; set { _datto = value; _health = null; } }
+
+    /// <summary>0–100 health score with reasons (see HealthScore).</summary>
+    public Diagnostics.HealthScore.Result Health => _health ??= Diagnostics.HealthScore.Compute(this);
+    public int HealthValue => Health.Score;
 
     public bool IsNoncompliant => string.Equals(ComplianceState, "noncompliant", StringComparison.OrdinalIgnoreCase);
     public bool IsInGracePeriod => string.Equals(ComplianceState, "inGracePeriod", StringComparison.OrdinalIgnoreCase);

@@ -168,6 +168,15 @@ public partial class UserView : UserControl
         if (DevicesGrid.SelectedItem is UserDeviceLink link) Shell.Navigate(new DeviceDetailView(link.Device));
     }
 
+    private void Offboard_Click(object sender, RoutedEventArgs e) => new OffboardingWindow(_user).ShowDialog();
+
+    private void OpenDevice_Menu(object sender, RoutedEventArgs e) => OpenSelected();
+
+    private void Remote_Menu(object sender, RoutedEventArgs e)
+    {
+        if (DevicesGrid.SelectedItem is UserDeviceLink link) RemoteHelper.Open(link.Device);
+    }
+
     private void Back_Click(object sender, RoutedEventArgs e) => (Application.Current.MainWindow as MainWindow)?.ShowDevices();
 
     private void CopyUpn_Click(object sender, RoutedEventArgs e)

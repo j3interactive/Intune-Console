@@ -170,6 +170,38 @@ public sealed class DattoClient
         return new DattoJobResult { JobUid = jobUid, Status = n.Str("status") ?? "" };
     }
 
+    /// <summary>Reads what a job's component printed on one device. Returns null for a stream Datto
+    /// doesn't provide. Datto's output endpoints return a list of component results; the text is joined.</summary>
+    public async Task<(string? StdOut, string? StdErr)> GetJobOutputAsync(string jobUid, string deviceUid, CancellationToken ct = default)
+    {
+        async Task<string?> Read(string stream)
+        {
+            try { return ExtractOutput(await SendAsync(HttpMethod.Get, $"/v2/job/{jobUid}/results/{deviceUid}/{stream}", null, ct)); }
+            catch (DattoException) { return null; }
+        }
+        var outTask = Read("stdout");
+        var errTask = Read("stderr");
+        return (await outTask, await errTask);
+    }
+
+    /// <summary>Pulls the text out of whatever shape Datto returns (array of results, an object, or a string).</summary>
+    public static string? ExtractOutput(System.Text.Json.Nodes.JsonNode? n)
+    {
+        switch (n)
+        {
+            case null: return null;
+            case JsonValue v when v.TryGetValue<string>(out var s): return s;
+            case JsonArray arr:
+                var parts = arr.Select(ExtractOutput).Where(p => !string.IsNullOrEmpty(p)).ToList();
+                return parts.Count == 0 ? "" : string.Join(Environment.NewLine, parts);
+            case JsonObject o:
+                foreach (var key in new[] { "stdData", "stdOut", "stdout", "stdErr", "stderr", "data", "output", "text" })
+                    if (o[key] is { } inner) return ExtractOutput(inner);
+                return null;
+            default: return null;
+        }
+    }
+
     /// <summary>Polls a job until it finishes or the timeout passes. Returns the last status seen.</summary>
     public async Task<DattoJobResult> WaitForJobAsync(string jobUid, TimeSpan timeout, CancellationToken ct = default)
     {

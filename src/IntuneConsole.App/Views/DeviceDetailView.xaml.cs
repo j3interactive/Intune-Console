@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
 using IntuneConsole.App.Services;
+using IntuneConsole.Core.Datto;
 using IntuneConsole.Core.Diagnostics;
 using IntuneConsole.Core.Logs;
 using IntuneConsole.Core.Models;
@@ -38,6 +39,7 @@ public partial class DeviceDetailView : UserControl
         };
         ActionsList.ItemsSource = actions;
 
+        LoadSnippets();
         RenderHeader();
     }
 
@@ -88,6 +90,8 @@ public partial class DeviceDetailView : UserControl
             : d.Datto is null ? "No Datto device with this hostname was found."
             : "The agent is offline. Jobs will wait until it's back online.";
         OpenDattoButton.IsEnabled = !string.IsNullOrWhiteSpace(d.Datto?.PortalUrl);
+        RemoteButton.IsEnabled = dattoReady;
+        RunScriptButton.IsEnabled = dattoReady && !_scriptRunning;
         WebRemoteButton.IsEnabled = !string.IsNullOrWhiteSpace(d.Datto?.WebRemoteUrl);
     }
 
@@ -609,7 +613,119 @@ public partial class DeviceDetailView : UserControl
 
     private void OpenDatto_Click(object sender, RoutedEventArgs e) => OpenUrl(_device.Datto?.PortalUrl);
 
-    private void WebRemote_Click(object sender, RoutedEventArgs e) => OpenUrl(_device.Datto?.WebRemoteUrl);
+    private void WebRemote_Click(object sender, RoutedEventArgs e) => RemoteHelper.Open(_device);
+
+    private void Remote_Click(object sender, RoutedEventArgs e) => RemoteHelper.Open(_device);
+
+    // ---------------- Run PowerShell ----------------
+
+    private static string SnippetsPath => Path.Combine(SettingsStore.AppDataFolder, "snippets.json");
+    private List<Snippet> _mySnippets = new();
+    private bool _scriptRunning;
+
+    private void LoadSnippets(string? select = null)
+    {
+        _mySnippets = Snippets.LoadMine(SnippetsPath);
+        var all = new List<Snippet> { new() { Name = "— Choose a saved command —", BuiltIn = true } };
+        all.AddRange(_mySnippets.OrderBy(s => s.Name));
+        all.AddRange(Snippets.BuiltIns);
+        SnippetCombo.ItemsSource = all;
+        SnippetCombo.SelectedItem = all.FirstOrDefault(s => s.Name == select) ?? all[0];
+    }
+
+    private void SnippetCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SnippetCombo.SelectedItem is Snippet { Script.Length: > 0 } s) ScriptBox.Text = s.Script;
+        DeleteSnippetButton.IsEnabled = SnippetCombo.SelectedItem is Snippet { BuiltIn: false };
+    }
+
+    private void SaveSnippet_Click(object sender, RoutedEventArgs e)
+    {
+        var script = ScriptBox.Text.Trim();
+        if (script.Length == 0) return;
+        var name = Dialogs.AskReason("Save command", "Name this command so you can pick it again later (saved on this PC for your account).",
+            "Name", "Save");
+        if (name is null) return;
+        _mySnippets.RemoveAll(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        _mySnippets.Add(new Snippet { Name = name, Script = script });
+        Snippets.SaveMine(SnippetsPath, _mySnippets);
+        LoadSnippets(name);
+    }
+
+    private void DeleteSnippet_Click(object sender, RoutedEventArgs e)
+    {
+        if (SnippetCombo.SelectedItem is not Snippet { BuiltIn: false } s) return;
+        if (!Shell.Confirm("Delete command", $"Delete "{s.Name}"?")) return;
+        _mySnippets.RemoveAll(x => x.Name == s.Name);
+        Snippets.SaveMine(SnippetsPath, _mySnippets);
+        LoadSnippets();
+    }
+
+    private async void RunScript_Click(object sender, RoutedEventArgs e)
+    {
+        if (_scriptRunning) return;
+        var script = ScriptBox.Text.Trim();
+        if (script.Length == 0) { ScriptStatus.Text = "Type a command or choose one."; return; }
+        if (script.Length > Snippets.MaxScriptLength) { ScriptStatus.Text = $"Too long for Datto ({script.Length} of {Snippets.MaxScriptLength} characters)."; return; }
+        if (S.Datto is null || _device.Datto is null) { ScriptStatus.Text = "Needs Datto set up and this device in Datto."; return; }
+
+        _scriptRunning = true;
+        RunScriptButton.IsEnabled = false;
+        ScriptOutput.Text = "";
+        var started = DateTimeOffset.Now;
+        var label = (SnippetCombo.SelectedItem as Snippet)?.Script == script ? ((Snippet)SnippetCombo.SelectedItem!).Name : "Custom command";
+        ActionLogEntry? entry = null;
+        try
+        {
+            ScriptStatus.Text = "Starting Datto job…";
+            var componentUid = await S.ResolveComponentAsync(S.Settings.DattoRunPowerShellComponent);
+            var jobUid = await S.Datto.RunQuickJobAsync(_device.Datto.Uid, $"PowerShell – {_device.DeviceName} (Intune Console)", componentUid,
+                new Dictionary<string, string> { ["ScriptB64"] = Snippets.Encode(script) });
+            entry = S.Log(_device.DeviceName, $"PowerShell: {label}", "Datto", "Running");
+            ScriptStatus.Text = _device.Datto.Online ? "Running on the device…" : "Queued: the agent is offline and will run it when it's back.";
+
+            var result = await S.Datto.WaitForJobAsync(jobUid, TimeSpan.FromMinutes(_device.Datto.Online ? 5 : 1));
+            if (!result.IsFinished)
+            {
+                ScriptStatus.Text = "Still running. Check Datto's job results for the output.";
+                S.UpdateLog(entry, "Still running");
+                return;
+            }
+            var (stdout, stderr) = await S.Datto.GetJobOutputAsync(jobUid, _device.Datto.Uid);
+            var text = (stdout ?? "") + (string.IsNullOrWhiteSpace(stderr) ? "" : $"{Environment.NewLine}--- errors ---{Environment.NewLine}{stderr}");
+            ScriptOutput.Text = text.Length > 0 ? text
+                : stdout is null ? "Datto didn't return the output to the console. Open the job in Datto to see it." : "(no output)";
+            var secs = (int)(DateTimeOffset.Now - started).TotalSeconds;
+            ScriptStatus.Text = $"Job {result.Status.ToLowerInvariant()} in {secs} s{(string.IsNullOrWhiteSpace(stderr) ? "" : " with errors")}.";
+            S.UpdateLog(entry, $"Job {result.Status.ToLowerInvariant()}{(string.IsNullOrWhiteSpace(stderr) ? "" : ", with errors")}");
+            SaveScriptTranscript(label, script, text);
+        }
+        catch (Exception ex)
+        {
+            ScriptStatus.Text = ex.Message;
+            if (entry is not null) S.UpdateLog(entry, $"Failed: {ex.Message}");
+        }
+        finally
+        {
+            _scriptRunning = false;
+            RunScriptButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>Keeps a local transcript of each command and its output for the admin's own records.</summary>
+    private void SaveScriptTranscript(string label, string script, string output)
+    {
+        try
+        {
+            var folder = Path.Combine(SettingsStore.AppDataFolder, "PowerShell");
+            Directory.CreateDirectory(folder);
+            var name = string.Concat(_device.DeviceName.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+            File.AppendAllText(Path.Combine(folder, $"{name}.log"),
+                $"===== {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss} · {S.Auth?.UserName ?? Environment.UserName} · {label}{Environment.NewLine}" +
+                $"{script}{Environment.NewLine}----- output -----{Environment.NewLine}{output}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch (IOException) { }
+    }
 
     private static void OpenUrl(string? url)
     {

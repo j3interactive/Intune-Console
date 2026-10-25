@@ -20,6 +20,7 @@ public partial class SettingsView : UserControl
         CompCacheBox.Text = s.DattoClearCacheComponent;
         CompResetBox.Text = s.DattoResetAppComponent;
         CompPushBox.Text = s.DattoPushFileComponent;
+        CompPsBox.Text = s.DattoRunPowerShellComponent;
         DropUrlBox.Text = s.FileDropContainerUrl;
         AssetSiteBox.Text = s.AssetSiteUrl;
         AssetsListBox.Text = s.AssetsListName;
@@ -50,6 +51,7 @@ public partial class SettingsView : UserControl
             DattoClearCacheComponent = Or(CompCacheBox.Text, s.DattoClearCacheComponent),
             DattoResetAppComponent = Or(CompResetBox.Text, s.DattoResetAppComponent),
             DattoPushFileComponent = Or(CompPushBox.Text, s.DattoPushFileComponent),
+            DattoRunPowerShellComponent = Or(CompPsBox.Text, s.DattoRunPowerShellComponent),
             FileDropContainerUrl = DropUrlBox.Text.Trim().TrimEnd('/'),
             AssetSiteUrl = AssetSiteBox.Text.Trim().TrimEnd('/'),
             AssetsListName = Or(AssetsListBox.Text, "Assets"),
@@ -169,10 +171,10 @@ public partial class SettingsView : UserControl
         {
             var components = await Session.Current.GetComponentsAsync();
             var s = Session.Current.Settings;
-            var wanted = new[] { s.DattoRestartImeComponent, s.DattoClearCacheComponent, s.DattoResetAppComponent, s.DattoPushFileComponent };
+            var wanted = new[] { s.DattoRestartImeComponent, s.DattoClearCacheComponent, s.DattoResetAppComponent, s.DattoPushFileComponent, s.DattoRunPowerShellComponent };
             var missing = wanted.Where(w => !components.Any(c => c.Name.Equals(w, StringComparison.OrdinalIgnoreCase))).ToList();
             DattoTestResult.Text = missing.Count == 0
-                ? $"Connected. Found {components.Count} components, including all four console components."
+                ? $"Connected. Found {components.Count} components, including all five console components."
                 : $"Connected ({components.Count} components), but these weren't found: {string.Join(", ", missing)}. Import them from scripts\\datto.";
         });
     }

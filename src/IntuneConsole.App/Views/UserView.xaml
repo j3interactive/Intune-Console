@@ -17,6 +17,8 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                             <Button Content="Copy UPN" Click="CopyUpn_Click"/>
                             <Button Content="Open in Entra ↗" Margin="8,0,0,0" Click="OpenEntra_Click"/>
+                            <Button Content="Offboard…" Margin="8,0,0,0" Click="Offboard_Click"
+                                    ToolTip="Leaver checklist: devices to collect, wipe or retire, and asset check-in"/>
                         </StackPanel>
                         <WrapPanel VerticalAlignment="Center">
                             <Border Width="48" Height="48" CornerRadius="24" Background="{StaticResource AccentSoft}" Margin="0,0,14,0">
@@ -51,6 +53,12 @@
                     </DockPanel>
                     <DataGrid x:Name="DevicesGrid" MouseDoubleClick="DevicesGrid_MouseDoubleClick" PreviewKeyDown="DevicesGrid_PreviewKeyDown"
                               AutomationProperties.Name="User's devices">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Troubleshoot" Click="OpenDevice_Menu"/>
+                                <MenuItem Header="Open Web Remote (Datto)" Click="Remote_Menu"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="DEVICE" Width="170" SortMemberPath="Device.DeviceName">
                                 <DataGridTemplateColumn.CellTemplate>

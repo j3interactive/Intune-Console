@@ -1,0 +1,78 @@
+<Window x:Class="IntuneConsole.App.Views.OffboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="1100" Height="680" MinWidth="860" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FontFamily="Segoe UI" FontSize="14" Background="{StaticResource Page}" Foreground="{StaticResource Ink}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                <Button x:Name="RevokeButton" Content="Sign out everywhere" Click="Revoke_Click" Margin="0,0,8,0"
+                        ToolTip="Revoke all of this person's sign-in sessions and refresh tokens"/>
+                <Button Content="Refresh" Click="Refresh_Click" Margin="0,0,8,0"/>
+                <Button Content="Copy summary" Click="Copy_Click" Style="{StaticResource PrimaryButton}"/>
+            </WrapPanel>
+            <StackPanel>
+                <TextBlock x:Name="HeadingText" Style="{StaticResource H1}" FontSize="22"/>
+                <TextBlock x:Name="SubText" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
+            </StackPanel>
+        </DockPanel>
+
+        <Border Grid.Row="1" x:Name="ProgressBox" CornerRadius="8" Padding="16,12" Margin="0,0,0,14" BorderThickness="1"
+                Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}">
+            <TextBlock x:Name="ProgressText" TextWrapping="Wrap" FontWeight="SemiBold"/>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0">
+            <DataGrid x:Name="ItemsGrid" RowHeight="NaN" MinRowHeight="40" SelectionChanged="ItemsGrid_SelectionChanged"
+                      AutomationProperties.Name="Devices to return">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="" Width="40" SortMemberPath="Done">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DoneMark}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource OkFg}"
+                                           HorizontalAlignment="Center" ToolTip="Done"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="DEVICE" Binding="{Binding Item.DeviceName}" Width="150"/>
+                    <DataGridTextColumn Header="SERIAL" Binding="{Binding Item.Serial}" Width="100" FontFamily="Consolas"/>
+                    <DataGridTextColumn Header="FOUND IN" Binding="{Binding Item.Source}" Width="130"/>
+                    <DataGridTextColumn Header="RETURNED" Binding="{Binding Item.ReturnText}" Width="170"/>
+                    <DataGridTextColumn Header="INTUNE" Binding="{Binding Item.IntuneText}" Width="210">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/></Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="NEXT STEP" Binding="{Binding Item.NextStep}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="Margin" Value="0,6"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <DockPanel Grid.Row="3" Margin="0,14,0,0">
+            <Button DockPanel.Dock="Right" Content="Close" IsCancel="True" MinWidth="100" HorizontalContentAlignment="Center" Click="Close_Click"/>
+            <WrapPanel>
+                <Button x:Name="AssetButton" Content="Check in / open asset…" Click="Asset_Click" Margin="0,0,8,0" IsEnabled="False"/>
+                <Button x:Name="WipeButton" Content="Wipe…" Click="Wipe_Click" Margin="0,0,8,0" IsEnabled="False"
+                        ToolTip="Factory reset. Registered Autopilot devices come back through Autopilot for the next person."/>
+                <Button x:Name="RetireButton" Content="Retire…" Click="Retire_Click" Margin="0,0,8,0" IsEnabled="False"
+                        ToolTip="Remove company data and management, keep personal data (phones, personal devices)"/>
+                <Button x:Name="OpenDeviceButton" Content="Open device" Click="OpenDevice_Click" IsEnabled="False"/>
+            </WrapPanel>
+        </DockPanel>
+    </Grid>
+</Window>

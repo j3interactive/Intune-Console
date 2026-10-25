@@ -113,6 +113,10 @@ public sealed class DirectoryService
         return new HashSet<string>(nodes.Select(n => n.Str("id") ?? ""), StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>Signs the user out everywhere (refresh tokens and session cookies). Needs User.RevokeSessions.All.</summary>
+    public Task RevokeSessionsAsync(string userId, CancellationToken ct = default) =>
+        _graph.PostAsync($"{V1}users/{userId}/revokeSignInSessions", null, ct);
+
     public async Task<string?> GetGroupNameAsync(string groupId, CancellationToken ct = default)
     {
         try { return (await _graph.GetAsync($"{V1}groups/{groupId}?$select=displayName", ct)).Str("displayName"); }

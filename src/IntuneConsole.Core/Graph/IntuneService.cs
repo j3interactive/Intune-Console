@@ -20,7 +20,7 @@ public sealed class IntuneService
     private const string DeviceSelect =
         "id,deviceName,userPrincipalName,userDisplayName,osVersion,model,manufacturer,serialNumber," +
         "complianceState,joinType,deviceEnrollmentType,isEncrypted,lastSyncDateTime,azureADDeviceId,operatingSystem," +
-        "wiFiMacAddress,userId,enrolledDateTime";
+        "wiFiMacAddress,userId,enrolledDateTime,freeStorageSpaceInBytes,totalStorageSpaceInBytes";
 
     // ---------- Devices ----------
 
@@ -63,6 +63,8 @@ public sealed class IntuneService
         WiFiMacAddress = n.Str("wiFiMacAddress"),
         UserId = n.Str("userId"),
         EnrolledDateTime = n.Date("enrolledDateTime"),
+        FreeStorageBytes = n.Num("freeStorageSpaceInBytes") is { } free and >= 0 ? (long)free : null,
+        TotalStorageBytes = n.Num("totalStorageSpaceInBytes") is { } total and > 0 ? (long)total : null,
     };
 
     /// <summary>All Intune devices (any platform) where this user is the primary user.</summary>
@@ -80,6 +82,15 @@ public sealed class IntuneService
 
     public Task RebootAsync(string deviceId, CancellationToken ct = default) =>
         _graph.PostAsync($"deviceManagement/managedDevices/{deviceId}/rebootNow", null, ct);
+
+    /// <summary>Removes company data and management; personal data stays. The device leaves Intune.</summary>
+    public Task RetireAsync(string deviceId, CancellationToken ct = default) =>
+        _graph.PostAsync($"deviceManagement/managedDevices/{deviceId}/retire", null, ct);
+
+    /// <summary>Factory reset. With an Autopilot registration the device comes back through Autopilot for the next user.</summary>
+    public Task WipeAsync(string deviceId, bool keepEnrollmentData = false, bool keepUserData = false, CancellationToken ct = default) =>
+        _graph.PostAsync($"deviceManagement/managedDevices/{deviceId}/wipe",
+            new JsonObject { ["keepEnrollmentData"] = keepEnrollmentData, ["keepUserData"] = keepUserData }, ct);
 
     /// <summary>Runs a Remediation (device health script) on one device, on demand.
     /// Requires the Remediations licensing prerequisites (Windows Enterprise E3/E5 or equivalent).</summary>

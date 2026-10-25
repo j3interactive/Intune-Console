@@ -86,6 +86,7 @@ public partial class DeviceListView : UserControl
         if (FilterUnencrypted.IsChecked == true && d.IsEncrypted != false) return false;
         if (FilterDattoOffline.IsChecked == true && d.Datto is not { Online: false }) return false;
         if (FilterNotInDatto.IsChecked == true && d.Datto is not null) return false;
+        if (FilterPoorHealth.IsChecked == true && d.HealthValue >= 60) return false;
 
         return d.Matches(SearchBox.Text);
     }
@@ -106,6 +107,13 @@ public partial class DeviceListView : UserControl
     private void Filter_Changed(object sender, RoutedEventArgs e)
     {
         if (!IsInitialized) return;
+        // Worst first when looking at poor health; otherwise by name.
+        if (_view is not null)
+        {
+            _view.SortDescriptions.Clear();
+            if (FilterPoorHealth.IsChecked == true)
+                _view.SortDescriptions.Add(new SortDescription(nameof(ManagedDevice.HealthValue), ListSortDirection.Ascending));
+        }
         _view?.Refresh();
         UpdateCount();
     }
@@ -124,6 +132,12 @@ public partial class DeviceListView : UserControl
     private void OpenSelected()
     {
         if (DeviceGrid.SelectedItem is ManagedDevice d) Shell.Navigate(new DeviceDetailView(d));
+    }
+
+    private void Remote_Click(object sender, RoutedEventArgs e)
+    {
+        if (DeviceGrid.SelectedItem is not ManagedDevice d) { Shell.Status("Select a device first.", isError: true); return; }
+        RemoteHelper.Open(d);
     }
 
     private void Bulk_Click(object sender, RoutedEventArgs e)

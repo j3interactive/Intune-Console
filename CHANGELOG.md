@@ -2,6 +2,39 @@
 
 Shipped changes to the Intune Troubleshooting Console. Planned work is in [ROADMAP.md](ROADMAP.md).
 
+## v0.5.0 · 2026-10-25
+
+### Added
+
+- **Run PowerShell** on the device page. Type a command, or pick one, and run it as SYSTEM through Datto. The output (and any errors) appears in the console, usually in 10–30 seconds.
+  - 14 ready-made commands: free disk space, uptime, pending restart, dsregcmd join status, IME status, installed apps, signed-in users, BitLocker, TPM, network, Windows Update history, MDM policies, Dell BIOS and service tag, and recent application errors.
+  - **Save as…** keeps your own commands on your PC.
+  - Every run is in the action log, and a transcript of each command and its output is saved under `%LOCALAPPDATA%\IntuneConsole\PowerShell`. Open to every admin, as decided.
+  - New Datto component: **Intune Console - Run PowerShell** (`scripts\datto\Run-PowerShell.ps1`, variable `ScriptB64`).
+- **Datto Web Remote** in one click: *Open Web Remote* on the device page, *Remote (Datto)* on the Devices screen, and right-click a device on a user page. Datto's remote session includes screen control, a live PowerShell/terminal and file transfer. Each session is logged.
+- **Health score** column on the Devices screen (0–100, hover for the reasons), plus a **Poor health** filter that sorts worst first. Deductions:
+  - Compliance state
+  - Days since the last check-in
+  - BitLocker off
+  - Low or nearly full disk
+  - Windows 10
+  - No Datto agent, or offline for more than 7 days
+  - No primary user
+- **Offboarding checklist** (*Offboard…* on a user page):
+  - Lists every device the person has, from Intune (primary user) and the asset register (assigned to them), with whether it's been returned, whether it's still in Intune, and the next step.
+  - Actions: check in or open the asset, **Wipe** (type the device name to confirm), **Retire**, and **Sign out everywhere** (revokes all sessions).
+  - Progress comes from live data, so you can close it and come back. **Copy summary** gives text for the ticket.
+
+### Setup needed
+
+- Import the **Run PowerShell** component into Datto (README section 3).
+- Add `User.RevokeSessions.All` with admin consent for "Sign out everywhere".
+
+### Notes
+
+- Datto's job output endpoint isn't in its public docs. The console reads `/v2/job/{job}/results/{device}/stdout` and `stderr`, and handles several response shapes. If the output panel says Datto didn't return it, the job still ran; send me what Datto shows and I'll adjust.
+- 119 automated checks now pass. The Windows UI still hasn't been compiled on Windows.
+
 ## v0.4.0 · 2026-10-25
 
 ### Added
