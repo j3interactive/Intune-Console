@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version number (e.g. 0.1.0)
+        required: false
+        default: 0.1.0
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build and package
+        shell: pwsh
+        run: ./build.ps1 -Version "${{ github.event.inputs.version || '0.1.0' }}"
+
+      - name: Upload Intune package
+        uses: actions/upload-artifact@v4
+        with:
+          name: IntuneConsole-package
+          path: |
+            out/IntuneConsole.intunewin
+            out/Detect.ps1
+            out/package/**
+          if-no-files-found: error

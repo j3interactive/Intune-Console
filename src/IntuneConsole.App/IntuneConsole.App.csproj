@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>IntuneConsole</AssemblyName>
+    <RootNamespace>IntuneConsole.App</RootNamespace>
+    <Product>Intune Troubleshooting Console</Product>
+    <Version>0.1.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Lets the project build from non-Windows machines (e.g. CI) as well. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Microsoft sign-in, using the Windows account broker (WAM) so admins get SSO with MFA/Conditional Access. -->
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.*" />
+    <PackageReference Include="Microsoft.Identity.Client.Broker" Version="4.*" />
+    <!-- Reads .evtx files from diagnostics bundles. -->
+    <PackageReference Include="System.Diagnostics.EventLog" Version="10.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IntuneConsole.Core\IntuneConsole.Core.csproj" />
+  </ItemGroup>
+
+</Project>

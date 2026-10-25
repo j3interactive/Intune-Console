@@ -1,0 +1,7 @@
+{
+  "TenantId": "contoso.onmicrosoft.com",
+  "ClientId": "00000000-0000-0000-0000-000000000000",
+  "DattoApiUrl": "https://merlot-api.centrastage.net",
+  "FileDropContainerUrl": "https://contosoitdrop.blob.core.windows.net/intune-console-drop",
+  "StaleDays": 7
+}
