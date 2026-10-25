@@ -1,0 +1,100 @@
+<UserControl x:Class="IntuneConsole.App.Views.HealthCheckView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="32,28,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="RunButton" Content="Run check" Style="{StaticResource PrimaryButton}" Click="Run_Click" MinWidth="120"
+                        HorizontalContentAlignment="Center"/>
+                <Button x:Name="ExportButton" Content="Export CSV" Margin="8,0,0,0" Click="Export_Click" IsEnabled="False"/>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="Record health check" Style="{StaticResource H1}"/>
+                <TextBlock x:Name="SubtitleText" Style="{StaticResource MutedText}" Margin="0,4,0,0"
+                           Text="Compares Intune, Entra ID, Autopilot and Datto, and lists devices whose records don't line up. Read-only: nothing is changed."/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Category summary -->
+        <ItemsControl x:Name="CategoryTiles" Grid.Row="1" Margin="0,0,0,16">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <RadioButton GroupName="Category" Style="{StaticResource Chip}" Margin="0,0,8,8" Tag="{Binding Name}"
+                                 IsChecked="{Binding IsSelected, Mode=OneWay}" Checked="Category_Checked">
+                        <TextBlock>
+                            <Run Text="{Binding Name, Mode=OneWay}"/>
+                            <Run Text="  "/>
+                            <Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </RadioButton>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0">
+            <Grid>
+                <DataGrid x:Name="FindingsGrid" RowHeight="NaN" MinRowHeight="40" MouseDoubleClick="FindingsGrid_MouseDoubleClick"
+                          PreviewKeyDown="FindingsGrid_PreviewKeyDown" AutomationProperties.Name="Findings">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="SEVERITY" Width="100" SortMemberPath="Severity">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Pill}" Tag="{Binding SeverityTone}">
+                                        <TextBlock Text="{Binding Finding.SeverityText}" Style="{StaticResource PillText}"
+                                                   Foreground="{Binding SeverityTone, Converter={StaticResource PillFg}}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="CHECK" Binding="{Binding Finding.Category}" Width="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="DEVICE" Width="160" SortMemberPath="Finding.DeviceName">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Finding.DeviceName}" FontWeight="SemiBold" Foreground="{Binding NameBrush}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="SERIAL" Binding="{Binding Finding.SerialNumber}" Width="110" FontFamily="Consolas"/>
+                        <DataGridTextColumn Header="WHAT'S WRONG" Binding="{Binding Finding.Detail}" Width="2*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Margin" Value="0,8"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="SUGGESTED FIX" Binding="{Binding Finding.Suggestion}" Width="2*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Margin" Value="0,8"/>
+                                    <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock x:Name="EmptyText" Style="{StaticResource MutedText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextAlignment="Center" MaxWidth="480"
+                           Text="Click Run check. It reads all devices from Intune, Entra ID, Autopilot and Datto, which takes a few seconds for a few thousand devices."/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

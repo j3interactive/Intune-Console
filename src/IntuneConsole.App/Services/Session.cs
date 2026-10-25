@@ -23,12 +23,23 @@ public sealed class Session
     public const string UploadSasSecret = "FileDropUploadSas";
     public const string ReadSasSecret = "FileDropReadSas";
 
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(30) };
+    private static readonly HttpClient Http = CreateHttp();
+
+    private static HttpClient CreateHttp()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
+        // Some Graph APIs (LAPS, BitLocker) require a User-Agent.
+        var version = typeof(Session).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"IntuneTroubleshootingConsole/{version}");
+        return http;
+    }
 
     public AppSettings Settings { get; private set; } = SettingsStore.Load();
     public MsalAuth? Auth { get; private set; }
     public IntuneService? Intune { get; private set; }
     public DirectoryService? Directory { get; private set; }
+    public SecretsService? Secrets { get; private set; }
+    public RecordsService? Records { get; private set; }
     public DattoClient? Datto { get; private set; }
     public FileDrop? FileDrop { get; private set; }
 
@@ -39,7 +50,47 @@ public sealed class Session
 
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = new();
 
-    private Session() { }
+    private Session()
+    {
+        LoadActionHistory();
+    }
+
+    /// <summary>Loads this admin's recent actions from earlier sessions, so device timelines and
+    /// ticket summaries include them.</summary>
+    private void LoadActionHistory()
+    {
+        try
+        {
+            var path = Path.Combine(SettingsStore.AppDataFolder, "actions.jsonl");
+            if (!File.Exists(path)) return;
+            var cutoff = DateTimeOffset.Now.AddDays(-30);
+            var entries = new List<ActionLogEntry>();
+            foreach (var line in File.ReadLines(path))
+            {
+                try
+                {
+                    var n = System.Text.Json.Nodes.JsonNode.Parse(line);
+                    if (n is null || !DateTimeOffset.TryParse(n["when"]?.GetValue<string>(), out var when) || when < cutoff) continue;
+                    entries.Add(new ActionLogEntry
+                    {
+                        When = when,
+                        DeviceName = n["device"]?.GetValue<string>() ?? "",
+                        Action = n["action"]?.GetValue<string>() ?? "",
+                        Via = n["via"]?.GetValue<string>() ?? "",
+                        Outcome = n["outcome"]?.GetValue<string>() ?? "",
+                        User = n["user"]?.GetValue<string>() ?? "",
+                    });
+                }
+                catch (JsonException) { }
+                catch (InvalidOperationException) { }
+            }
+            // The log appends a line each time an outcome changes; keep the last line per action.
+            foreach (var e in entries.GroupBy(e => (e.When, e.DeviceName, e.Action)).Select(g => g.Last())
+                         .OrderByDescending(e => e.When).Take(500))
+                ActionLog.Add(e);
+        }
+        catch (IOException) { }
+    }
 
     /// <summary>(Re)creates the API clients from current settings and stored secrets.</summary>
     public void Configure(AppSettings settings)
@@ -50,6 +101,8 @@ public sealed class Session
         Auth = null;
         Intune = null;
         Directory = null;
+        Secrets = null;
+        Records = null;
         if (settings.IsSignInConfigured)
         {
             // Called on the UI thread; grab the main window handle now so sign-in prompts have a parent.
@@ -59,6 +112,8 @@ public sealed class Session
             var graph = new GraphClient(Http, ct => auth.GetTokenAsync(ct));
             Intune = new IntuneService(graph, Http);
             Directory = new DirectoryService(graph);
+            Secrets = new SecretsService(graph);
+            Records = new RecordsService(graph);
         }
 
         var key = CredentialStore.Read(DattoKeySecret);
@@ -144,7 +199,7 @@ public sealed class Session
             var line = JsonSerializer.Serialize(new
             {
                 when = e.When, device = e.DeviceName, action = e.Action, via = e.Via, outcome = e.Outcome,
-                user = Environment.UserName
+                user = e.User
             });
             File.AppendAllText(Path.Combine(SettingsStore.AppDataFolder, "actions.jsonl"), line + Environment.NewLine);
         }

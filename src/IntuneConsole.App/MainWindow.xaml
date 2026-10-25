@@ -33,6 +33,8 @@
                              GroupName="Nav" Content="Devices" Click="NavDevices_Click"/>
                 <RadioButton x:Name="NavDiagnostics" DockPanel.Dock="Top" Style="{StaticResource NavButton}"
                              GroupName="Nav" Content="Diagnostics" Click="NavDiagnostics_Click"/>
+                <RadioButton x:Name="NavHealth" DockPanel.Dock="Top" Style="{StaticResource NavButton}"
+                             GroupName="Nav" Content="Record health check" Click="NavHealth_Click"/>
                 <RadioButton x:Name="NavSettings" DockPanel.Dock="Top" Style="{StaticResource NavButton}"
                              GroupName="Nav" Content="Settings" Click="NavSettings_Click"/>
 

@@ -31,7 +31,7 @@ Search for a person and land on their devices in one step. Today you have to kno
 
 ---
 
-## v0.3: Asset management
+## v0.4: Asset management
 
 ### Asset records · Planned
 
@@ -68,7 +68,7 @@ Each device gets an asset record that combines live data with fields you maintai
 
 ---
 
-## v0.4: Remote control and PowerShell
+## v0.5: Remote control and PowerShell
 
 ### Remote control · Planned
 
@@ -86,7 +86,7 @@ For quick, one-off commands without opening a full remote session:
 - It runs through a Datto component that takes the script as a variable and runs it as System. The console then reads the job's output through the Datto API.
 - **Snippet library:** saved, reviewed commands such as "free disk space", "last reboot", "pending reboot", "installed apps", "dsregcmd /status" and "gpresult". Each can be run with one click.
 - Every command and its output is saved to the action log.
-- Admins can choose to allow only saved snippets and turn off free-form commands.
+- **Decided:** every admin can run free-form commands as well as saved snippets. Datto's own security level on each admin's API key still applies.
 
 This is not an interactive shell. Each run is a separate job, so it can't keep state between commands or answer prompts. Use Datto Web Remote for that.
 
@@ -94,17 +94,17 @@ This is not an interactive shell. Each run is a separate job, so it can't keep s
 
 ---
 
-## v0.5: Features Intune and Datto don't offer
+## v0.3 and later: Features Intune and Datto don't offer
 
-These fill gaps that come up in day-to-day troubleshooting. Each is marked with how much it would help a small team. **Pick what you want and in what order.**
+These fill gaps that come up in day-to-day troubleshooting. You asked for these ahead of asset management, so the first batch shipped as **v0.3.0**.
 
 ### Help most
 
-- **Device timeline.** One chronological view per device that combines Intune events (enrollment, policy and app changes, remote actions), Datto activity (jobs, alerts, remote sessions), user sign-ins and the console's own actions. It answers "what changed before it broke?" Today this is spread across three portals.
-- **One-click LAPS password and BitLocker key.** Show the local admin password or BitLocker recovery key on the device page, with a reason prompt and a logged reveal. Both exist in the Intune portal but take several clicks to find. Needs `DeviceLocalCredential.Read.All` and `BitLockerKey.Read.All`.
-- **Record reconciliation.** Find devices that are out of sync between Intune, Entra ID, Autopilot and Datto: in Datto but not Intune, duplicate Intune records for one serial, stale Entra devices, Autopilot devices with no group tag. Includes a cleanup list, and nothing is deleted without confirmation.
-- **"Why didn't this app install?" check.** For one app and one device, walk through the real reasons: the device isn't in the assigned group, an assignment filter excludes it, a requirement rule failed, a dependency failed, or it's waiting in the IME retry schedule. Intune shows the result but rarely the reason.
-- **Ticket summary export.** One button that produces a short text summary (device, user, health, failing apps or policies, recent actions, likely cause) to paste into a ticket or Teams.
+- **Device timeline · Shipped in v0.3.0.** One chronological view per device: Intune audit events (changes and remote actions, 30 days), the primary user's sign-ins on that device (14 days), the console's own actions, diagnostics, enrollment and check-ins. *Still to add:* Datto activity (jobs, alerts, remote sessions), once the Datto activity API is confirmed.
+- **One-click LAPS password and BitLocker key · Shipped in v0.3.0.** On the device page, with a reason prompt, a logged reveal and a window that closes itself and clears the clipboard.
+- **Record reconciliation · Shipped in v0.3.0** as the *Record health check* screen. Checks: duplicate Intune records per serial, Intune devices not checking in, Intune vs Datto both ways, stale Entra devices, Entra-joined devices missing from Intune, Autopilot devices with no group tag or never enrolled, and Intune devices not registered in Autopilot. Read-only, with CSV export.
+- **Ticket summary export · Shipped in v0.3.0.**
+- **"Why didn't this app install?" check · Next.** For one app and one device, walk through the real reasons: the device isn't in the assigned group, an assignment filter excludes it, a requirement rule failed, a dependency failed, or it's waiting in the IME retry schedule. Intune shows the result but rarely the reason.
 
 ### Useful
 
@@ -116,7 +116,7 @@ These fill gaps that come up in day-to-day troubleshooting. Each is marked with 
 
 ### Later
 
-- **Shared notes per device and user** (needs the SharePoint list from v0.3).
+- **Shared notes per device and user** (needs the SharePoint list from v0.4).
 - **Alerts in Teams** for devices that drop out of compliance or stop checking in.
 - **Push file via Intune** for devices offline in Datto. Intune's on-demand remediation can't take inputs, so this would need a different approach.
 
@@ -130,11 +130,11 @@ New delegated Graph permissions these features need, added only when a feature s
 | --- | --- | --- |
 | `User.Read.All` | User search and user page | v0.2 |
 | `AuditLog.Read.All` | Recent sign-ins (Entra ID P1, plus Reports Reader role) | v0.2 |
-| `Device.Read.All` | Entra device records for reconciliation | v0.5 |
-| `Sites.Selected` | Asset register in one SharePoint site | v0.3 |
-| `DeviceManagementServiceConfig.Read.All` | Autopilot group tag and profile | v0.3 |
-| `DeviceLocalCredential.Read.All` | LAPS password reveal | v0.5 |
-| `BitLockerKey.Read.All` | BitLocker key reveal | v0.5 |
+| `Device.Read.All` | Entra device records for the health check | v0.3 |
+| `DeviceManagementServiceConfig.Read.All` | Autopilot records for the health check | v0.3 |
+| `DeviceLocalCredential.Read.All` | LAPS password reveal (plus an Entra role, see README) | v0.3 |
+| `BitlockerKey.Read.All` | BitLocker key reveal (plus an Entra role, see README) | v0.3 |
+| `Sites.Selected` | Asset register in one SharePoint site | v0.4 |
 
 All of them are delegated, so each admin can still only see and do what their own Entra and Intune roles allow.
 
@@ -145,8 +145,9 @@ All of them are delegated, so each admin can still only see and do what their ow
 - **Devices:** all Dell, so warranty lookup uses Dell's API only.
 - **Licensing:** Entra ID P1, so sign-in history is included on the user page.
 - **Asset tracking:** none today; the SharePoint list becomes the register.
+- **PowerShell:** every admin can run free-form commands.
+- **Order:** extra features first (v0.3), then asset management (v0.4), then remote control and PowerShell (v0.5).
 
 ## Open questions
 
-1. Should free-form PowerShell be available to every admin, or only saved snippets for some?
-2. From the v0.5 list, what's most useful to you first?
+1. After the "why didn't this app install?" check, which of the *Useful* features next? The default order is primary user mismatch, bulk actions, then new device readiness.

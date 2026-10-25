@@ -18,6 +18,7 @@ public sealed class ManagedDevice
     public DateTimeOffset? LastSyncDateTime { get; init; }
     public string? AzureAdDeviceId { get; init; }
     public string? OperatingSystem { get; init; }
+    public DateTimeOffset? EnrolledDateTime { get; init; }
     public string? WiFiMacAddress { get; init; }
     public string? UserId { get; init; }
     public bool IsWindows => OperatingSystem?.StartsWith("Windows", StringComparison.OrdinalIgnoreCase) ?? true;
@@ -158,6 +159,7 @@ public sealed class ActionLogEntry
     public string Action { get; init; } = "";
     public string Via { get; init; } = "";
     public string Outcome { get; set; } = "";
+    public string User { get; init; } = Environment.UserName;
     public string WhenText => When.ToLocalTime().ToString("MMM d HH:mm");
 }
 

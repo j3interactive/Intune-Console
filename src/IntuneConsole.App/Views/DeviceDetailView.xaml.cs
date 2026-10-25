@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
 using IntuneConsole.App.Services;
+using IntuneConsole.Core.Diagnostics;
 using IntuneConsole.Core.Logs;
 using IntuneConsole.Core.Models;
 using IntuneConsole.Core.Settings;
@@ -16,6 +17,8 @@ public partial class DeviceDetailView : UserControl
 {
     private ManagedDevice _device;
     private List<PolicyState> _policies = new();
+    private List<AppInstallStatus>? _apps;
+    private List<LogCollectionRequest> _diagnostics = new();
     private LogCollectionRequest? _latestDiag;
     private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromSeconds(30) };
     private DateTimeOffset _pollUntil;
@@ -148,6 +151,7 @@ public partial class DeviceDetailView : UserControl
         try
         {
             var apps = await appsTask;
+            _apps = apps;
             AppsGrid.ItemsSource = apps;
             var failed = apps.Count(a => a.IsFailed);
             var pending = apps.Count(a => a.IsPending);
@@ -176,6 +180,7 @@ public partial class DeviceDetailView : UserControl
         try
         {
             var diags = await diagTask;
+            _diagnostics = diags;
             _latestDiag = diags.FirstOrDefault();
             UpdateDiagUi();
             if (_latestDiag?.IsPending == true) StartPolling();
@@ -321,6 +326,137 @@ public partial class DeviceDetailView : UserControl
         });
         if (ok && bundle is not null)
             Shell.Navigate(new LogViewerView(bundle, _device.DeviceName));
+    }
+
+    // ---------------- Passwords and keys ----------------
+
+    private string? RequireEntraId()
+    {
+        if (string.IsNullOrWhiteSpace(_device.AzureAdDeviceId) || _device.AzureAdDeviceId == Guid.Empty.ToString())
+        {
+            Shell.Status("This device has no Entra device ID in Intune, so its LAPS password and BitLocker keys can't be looked up.", isError: true);
+            return null;
+        }
+        return _device.AzureAdDeviceId;
+    }
+
+    private async void Laps_Click(object sender, RoutedEventArgs e)
+    {
+        var entraId = RequireEntraId();
+        if (entraId is null || S.Secrets is null) return;
+        var reason = Dialogs.AskReason("Show local admin password",
+            $"You're about to reveal the local administrator password for {_device.DeviceName}.");
+        if (reason is null) return;
+
+        LapsInfo? laps = null;
+        var ok = await Shell.Run("Getting LAPS password…", async () => laps = await S.Secrets.GetLapsAsync(entraId));
+        if (!ok)
+        {
+            ShowSecretsHint();
+            return;
+        }
+        if (laps is null || laps.Credentials.Count == 0)
+        {
+            S.Log(_device.DeviceName, $"View LAPS password ({reason})", "Entra", "No password backed up");
+            Shell.Status($"No LAPS password is backed up to Entra for {_device.DeviceName}. Check that a Windows LAPS policy targets it.", isError: true);
+            return;
+        }
+
+        S.Log(_device.DeviceName, $"View LAPS password ({reason})", "Entra", "Revealed");
+        var current = laps.Credentials[0];
+        var rows = new List<Dialogs.SecretRow>
+        {
+            new($"Account: {current.AccountName}", current.Password,
+                $"Backed up {current.BackupTime?.ToLocalTime():g}" +
+                (laps.NextRotation is { } next ? $" · next rotation {next.ToLocalTime():g}" : "")),
+        };
+        rows.AddRange(laps.Credentials.Skip(1).Take(2).Select(c =>
+            new Dialogs.SecretRow($"Previous: {c.AccountName}", c.Password, $"Backed up {c.BackupTime?.ToLocalTime():g}")));
+        Dialogs.ShowSecrets($"LAPS – {_device.DeviceName}",
+            "Consider rotating the password after use (Intune > device > Rotate local admin password).", rows);
+    }
+
+    private async void BitLocker_Click(object sender, RoutedEventArgs e)
+    {
+        var entraId = RequireEntraId();
+        if (entraId is null || S.Secrets is null) return;
+        var reason = Dialogs.AskReason("Show BitLocker recovery key",
+            $"You're about to reveal the BitLocker recovery key(s) for {_device.DeviceName}.");
+        if (reason is null) return;
+
+        var rows = new List<Dialogs.SecretRow>();
+        var ok = await Shell.Run("Getting BitLocker keys…", async () =>
+        {
+            var keys = await S.Secrets.ListBitLockerKeysAsync(entraId);
+            foreach (var k in keys)
+            {
+                k.Key = await S.Secrets.GetBitLockerKeyAsync(k.Id);
+                rows.Add(new Dialogs.SecretRow($"{k.VolumeText} · Key ID {k.ShortId}", k.Key,
+                    $"Backed up {k.Created?.ToLocalTime():g}. Match the Key ID with the one on the recovery screen."));
+            }
+        });
+        if (!ok)
+        {
+            ShowSecretsHint();
+            return;
+        }
+        if (rows.Count == 0)
+        {
+            S.Log(_device.DeviceName, $"View BitLocker key ({reason})", "Entra", "No key backed up");
+            Shell.Status($"No BitLocker recovery key is backed up to Entra for {_device.DeviceName}.", isError: true);
+            return;
+        }
+        S.Log(_device.DeviceName, $"View BitLocker key ({reason})", "Entra", $"Revealed {rows.Count} key(s)");
+        Dialogs.ShowSecrets($"BitLocker – {_device.DeviceName}", "Newest first.", rows);
+    }
+
+    private void ShowSecretsHint()
+    {
+        SecretsNote.Text = "If this says access denied: the app registration needs DeviceLocalCredential.Read.All and BitlockerKey.Read.All " +
+                           "with admin consent, and your account needs an Entra role. LAPS passwords need Cloud Device Administrator or " +
+                           "Intune Administrator; BitLocker keys also allow Helpdesk Administrator.";
+        SecretsNote.Visibility = Visibility.Visible;
+    }
+
+    // ---------------- Ticket summary ----------------
+
+    private void CopySummary_Click(object sender, RoutedEventArgs e)
+    {
+        var text = TicketSummary.Build(_device, _apps, _policies, _latestDiag, S.ActionLog);
+        Clipboard.SetText(text);
+        Shell.Status("Ticket summary copied. Paste it into the ticket or Teams.");
+    }
+
+    // ---------------- Timeline ----------------
+
+    private async void LoadTimeline_Click(object sender, RoutedEventArgs e)
+    {
+        if (S.Records is null || S.Directory is null) return;
+        var problems = new List<string>();
+        List<TimelineEvent>? audit = null;
+        List<SignInEvent>? signIns = null;
+
+        await Shell.Run("Building timeline (reading 30 days of Intune audit events)…", async () =>
+        {
+            var auditTask = S.Records.GetDeviceAuditEventsAsync(_device.Id, _device.DeviceName);
+            Task<List<SignInEvent>>? signInTask = string.IsNullOrWhiteSpace(_device.UserId) || _device.UserId == Guid.Empty.ToString()
+                ? null : S.Directory.GetSignInsAsync(_device.UserId!, days: 14, top: 500);
+
+            try { audit = await auditTask; } catch (Exception ex) { problems.Add($"Intune audit ({ex.Message})"); }
+            if (signInTask is not null)
+            {
+                try { signIns = await signInTask; } catch (Exception ex) { problems.Add($"sign-ins ({ex.Message})"); }
+            }
+        });
+
+        var events = Timeline.Build(_device, audit, signIns, S.ActionLog, _diagnostics);
+        TimelineGrid.ItemsSource = events;
+        TimelineGrid.Visibility = Visibility.Visible;
+        TimelineButton.Content = "Refresh";
+        var failures = events.Count(x => x.IsFailure);
+        TimelineSummary.Text = $"{events.Count} events{(failures > 0 ? $" · {failures} failures highlighted" : "")}" +
+                               (problems.Count > 0 ? $" · not loaded: {string.Join("; ", problems)}" : "");
+        if (problems.Count > 0) Shell.Status("Part of the timeline didn't load: " + string.Join("; ", problems), isError: true);
     }
 
     // ---------------- Datto actions ----------------

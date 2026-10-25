@@ -79,6 +79,37 @@
                 </Border>
             </Grid>
 
+            <!-- Credentials + ticket summary -->
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Passwords and keys" Style="{StaticResource H2}"/>
+                        <TextBlock Text="From Entra ID. Each reveal asks for a reason and is recorded in Entra's audit log under your account."
+                                   Style="{StaticResource Label}" Margin="0,2,0,12" TextWrapping="Wrap"/>
+                        <WrapPanel>
+                            <Button x:Name="LapsButton" Content="Show local admin password (LAPS)" Click="Laps_Click" Margin="0,0,8,8"/>
+                            <Button x:Name="BitLockerButton" Content="Show BitLocker recovery key" Click="BitLocker_Click" Margin="0,0,8,8"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="SecretsNote" Style="{StaticResource MutedText}" Visibility="Collapsed"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Ticket summary" Style="{StaticResource H2}"/>
+                        <TextBlock Text="Device, user, health, failing apps and policies, and actions taken, as plain text."
+                                   Style="{StaticResource Label}" Margin="0,2,0,12" TextWrapping="Wrap"/>
+                        <Button Content="Copy ticket summary" Style="{StaticResource PrimaryButton}" Click="CopySummary_Click"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
             <!-- Issues + push file -->
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -194,6 +225,62 @@
                             </ItemsControl>
                             <TextBlock Text="Intune's and Datto's own audit logs keep the full record of who did what."
                                        Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0">
+                        <StackPanel>
+                            <DockPanel Margin="20,16">
+                                <Button x:Name="TimelineButton" DockPanel.Dock="Right" Content="Load timeline" Click="LoadTimeline_Click" VerticalAlignment="Center"/>
+                                <StackPanel>
+                                    <TextBlock Text="Timeline" Style="{StaticResource H2}"/>
+                                    <TextBlock x:Name="TimelineSummary" Style="{StaticResource Label}" Margin="0,2,0,0" TextWrapping="Wrap"
+                                               Text="Intune changes and actions (30 days), the primary user's sign-ins on this device (14 days), console actions and check-ins, newest first."/>
+                                </StackPanel>
+                            </DockPanel>
+                            <DataGrid x:Name="TimelineGrid" RowHeight="NaN" MinRowHeight="34" MaxHeight="520" Visibility="Collapsed"
+                                      AutomationProperties.Name="Device timeline">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsFailure}" Value="True">
+                                                <Setter Property="Background" Value="#FDF1EF"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="WHEN" Binding="{Binding WhenText}" Width="110" SortMemberPath="When"/>
+                                    <DataGridTemplateColumn Header="SOURCE" Width="100" SortMemberPath="SourceText">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource Pill}" Tag="{Binding SourceText}">
+                                                    <TextBlock Text="{Binding SourceText}" Style="{StaticResource PillText}"
+                                                               Foreground="{Binding SourceText, Converter={StaticResource PillFg}}"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="WHAT HAPPENED" Binding="{Binding Title}" Width="2*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                                <Setter Property="FontWeight" Value="Medium"/>
+                                                <Setter Property="Margin" Value="0,6"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="DETAIL" Binding="{Binding Detail}" Width="2*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                                <Setter Property="Margin" Value="0,6"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="BY" Binding="{Binding Actor}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

@@ -20,15 +20,18 @@ public sealed class IntuneService
     private const string DeviceSelect =
         "id,deviceName,userPrincipalName,userDisplayName,osVersion,model,manufacturer,serialNumber," +
         "complianceState,joinType,deviceEnrollmentType,isEncrypted,lastSyncDateTime,azureADDeviceId,operatingSystem," +
-        "wiFiMacAddress,userId";
+        "wiFiMacAddress,userId,enrolledDateTime";
 
     // ---------- Devices ----------
 
-    public async Task<List<ManagedDevice>> GetWindowsDevicesAsync(CancellationToken ct = default)
+    public async Task<List<ManagedDevice>> GetWindowsDevicesAsync(CancellationToken ct = default) =>
+        (await GetAllDevicesAsync(ct)).Where(d => d.IsWindows).ToList();
+
+    /// <summary>Every Intune-managed device, all platforms, sorted by name.</summary>
+    public async Task<List<ManagedDevice>> GetAllDevicesAsync(CancellationToken ct = default)
     {
         var nodes = await _graph.GetAllAsync($"deviceManagement/managedDevices?$select={DeviceSelect}&$top=500", ct: ct);
         return nodes
-            .Where(n => (n.Str("operatingSystem") ?? "").StartsWith("Windows", StringComparison.OrdinalIgnoreCase))
             .Select(MapDevice)
             .OrderBy(d => d.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -59,6 +62,7 @@ public sealed class IntuneService
         OperatingSystem = n.Str("operatingSystem"),
         WiFiMacAddress = n.Str("wiFiMacAddress"),
         UserId = n.Str("userId"),
+        EnrolledDateTime = n.Date("enrolledDateTime"),
     };
 
     /// <summary>All Intune devices (any platform) where this user is the primary user.</summary>

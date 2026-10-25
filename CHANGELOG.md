@@ -2,6 +2,38 @@
 
 Shipped changes to the Intune Troubleshooting Console. Planned work is in [ROADMAP.md](ROADMAP.md).
 
+## v0.3.0 · 2026-10-25
+
+### Added
+
+- **Passwords and keys** on the device page:
+  - **Show local admin password (LAPS):** the current Windows LAPS password with account name, backup time and next rotation, plus up to two previous passwords.
+  - **Show BitLocker recovery key:** every key backed up for the device, with the Key ID to match against the recovery screen.
+  - Both ask for a reason first, record the reveal in the action log, and are recorded by Entra in its audit log. The window closes after two minutes and clears the clipboard if it still holds the copied secret.
+- **Device timeline** on the device page (Load timeline): Intune audit events for the device (30 days), the primary user's sign-ins on that device (14 days, repeats grouped), console actions, diagnostics requests and uploads, enrollment, last check-in and last Datto contact. Failures are highlighted.
+- **Copy ticket summary** on the device page: device, user, compliance, encryption, Datto status, failed and pending apps with plain-English explanations, policy problems, diagnostics and actions taken.
+- **Record health check** screen (new in the sidebar). It compares Intune, Entra ID, Autopilot and Datto and lists:
+  - Duplicate Intune records for one serial
+  - Intune devices with no check-in for 30+ days
+  - Devices in Intune but not Datto, and in Datto but not Intune
+  - Enabled Entra devices with no sign-in for 90+ days
+  - Entra-joined devices with no Intune record
+  - Autopilot devices with no group tag, or registered but never enrolled
+  - Intune devices not registered in Autopilot
+
+  Each finding has a suggested fix. Filter by check, export to CSV, or double-click to open the device. Nothing is changed.
+- The console now remembers your last 30 days of actions between sessions, so timelines and ticket summaries include them.
+
+### Setup needed
+
+- Add `Device.Read.All`, `DeviceManagementServiceConfig.Read.All`, `DeviceLocalCredential.Read.All` and `BitlockerKey.Read.All`, then grant admin consent.
+- LAPS passwords need the Cloud Device Administrator or Intune Administrator role in Entra. BitLocker keys also work with Helpdesk Administrator.
+
+### Notes
+
+- Datto activity isn't in the timeline yet.
+- The new logic passed 62 automated checks in total. The Windows UI still hasn't been compiled on Windows.
+
 ## v0.2.0 · 2026-10-25
 
 ### Added
