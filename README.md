@@ -8,6 +8,8 @@ A Windows desktop app for your admin team that puts Intune troubleshooting and D
 
 Each admin signs in with their own Microsoft account and their own Datto API key. Intune's RBAC still decides what each person can do, and both Intune's and Datto's audit logs show who did what. Nothing extra is installed on managed devices.
 
+See [ROADMAP.md](ROADMAP.md) for planned features and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
+
 Setup takes about 30–45 minutes the first time. Steps 1, 4 and 5 are required. Steps 2 and 3 can wait.
 
 ---
