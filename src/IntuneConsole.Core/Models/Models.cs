@@ -17,6 +17,25 @@ public sealed class ManagedDevice
     public bool? IsEncrypted { get; init; }
     public DateTimeOffset? LastSyncDateTime { get; init; }
     public string? AzureAdDeviceId { get; init; }
+    public string? OperatingSystem { get; init; }
+    public string? WiFiMacAddress { get; init; }
+    public string? UserId { get; init; }
+    public bool IsWindows => OperatingSystem?.StartsWith("Windows", StringComparison.OrdinalIgnoreCase) ?? true;
+
+    /// <summary>Matches a free-text query against the fields admins search by.</summary>
+    public bool Matches(string query)
+    {
+        var q = query.Trim();
+        if (q.Length == 0) return true;
+        if (Has(DeviceName, q) || Has(UserDisplayName, q) || Has(UserPrincipalName, q) || Has(SerialNumber, q) || Has(Model, q))
+            return true;
+        // MAC addresses: ignore separators so "aa:bb", "AA-BB" and "aabb" all match.
+        var mac = Normalize(q);
+        return mac.Length >= 4 && Normalize(WiFiMacAddress).Contains(mac, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool Has(string? s, string q) => s?.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
+    private static string Normalize(string? s) => new string((s ?? "").Where(char.IsLetterOrDigit).ToArray());
 
     /// <summary>Matched Datto device, if any (by hostname).</summary>
     public DattoDevice? Datto { get; set; }

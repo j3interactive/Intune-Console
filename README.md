@@ -2,6 +2,7 @@
 
 A Windows desktop app for your admin team that puts Intune troubleshooting and Datto RMM actions on one screen:
 
+- **Search people and devices** from anywhere (Ctrl+K): name, UPN, email, employee ID, job title or department for people, and device name, serial or MAC for devices. A **user page** shows the person's details, every device they use, and their recent sign-ins.
 - **Device list** of Intune-managed Windows devices with compliance, last check-in, encryption and Datto agent status, plus filters and CSV export.
 - **Device page** with Intune actions (sync, restart, collect diagnostics), Intune Remediations run on demand, Datto actions (restart the Intune Management Extension, clear its download cache, reset a stuck Win32 app, open the device in Datto), app install errors explained in plain English, policy conflicts, and **push a file** to the device.
 - **Log viewer** that downloads and unpacks Intune diagnostics bundles, parses the Intune Management Extension logs, highlights errors and suggests a likely cause with the log line it came from.
@@ -32,7 +33,13 @@ In the [Entra admin center](https://entra.microsoft.com) go to **Identity > Appl
    - `DeviceManagementManagedDevices.PrivilegedOperations.All` (sync, restart, run remediations)
    - `DeviceManagementApps.Read.All` (app install status)
    - `DeviceManagementConfiguration.Read.All` (policy states, list remediations)
+   - `User.Read.All` (people search and the user page, added in v0.2)
+   - `AuditLog.Read.All` (recent sign-ins on the user page, added in v0.2)
 7. Click **Grant admin consent for <your tenant>**.
+
+   The app asks for whatever permissions have admin consent, so when a new version needs another permission, adding it here and granting consent is all it takes. Until then, only the feature that needs it shows a message.
+
+   **Sign-ins also need an Entra role:** admins who should see a user's sign-in history need **Reports Reader** (or Global Reader or Security Reader). Without it, the rest of the user page still works.
 8. Recommended: in **Enterprise applications**, open the same app, go to **Properties**, set **Assignment required** to **Yes**, then under **Users and groups** add your admins group. Only those people can sign in. Your normal Conditional Access policies (MFA, compliant device) apply.
 
 These are *delegated* permissions: the app can only do what the signed-in admin's Intune role allows. A helpdesk role without restart rights can't restart a device through the console either. Admins need Intune role permissions for the remote tasks they'll use (sync, restart, collect diagnostics, run remediations).
@@ -139,6 +146,9 @@ Devices only ever get the read-only token, inside a link to one file. Every file
 | "Datto sign-in failed" | Check the API URL (it's platform-specific) and regenerate the key if unsure. |
 | "Datto component … wasn't found" | The name in Settings must match the component name exactly. |
 | App status says "Couldn't load" | Intune's per-device app report is a beta API; send me the exact message. |
+| People search shows "Access denied" | Add `User.Read.All` and grant admin consent (step 1.6–1.7). |
+| User page says sign-ins need a permission | Add `AuditLog.Read.All` with consent, and give the admin the Reports Reader role. |
+| Can't find someone by a partial name | Name search matches whole words from the start ("john", "smi"), not the middle of a word. UPN, email and employee ID match from the start. |
 
 If the build fails, copy the error lines and send them over.
 

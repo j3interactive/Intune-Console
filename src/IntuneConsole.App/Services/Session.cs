@@ -28,6 +28,7 @@ public sealed class Session
     public AppSettings Settings { get; private set; } = SettingsStore.Load();
     public MsalAuth? Auth { get; private set; }
     public IntuneService? Intune { get; private set; }
+    public DirectoryService? Directory { get; private set; }
     public DattoClient? Datto { get; private set; }
     public FileDrop? FileDrop { get; private set; }
 
@@ -48,6 +49,7 @@ public sealed class Session
 
         Auth = null;
         Intune = null;
+        Directory = null;
         if (settings.IsSignInConfigured)
         {
             // Called on the UI thread; grab the main window handle now so sign-in prompts have a parent.
@@ -56,6 +58,7 @@ public sealed class Session
             Auth = auth;
             var graph = new GraphClient(Http, ct => auth.GetTokenAsync(ct));
             Intune = new IntuneService(graph, Http);
+            Directory = new DirectoryService(graph);
         }
 
         var key = CredentialStore.Read(DattoKeySecret);

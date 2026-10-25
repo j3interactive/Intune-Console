@@ -29,6 +29,8 @@
         <conv:PillBackgroundConverter x:Key="PillBg"/>
         <conv:PillForegroundConverter x:Key="PillFg"/>
         <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
+        <conv:KindGlyphConverter x:Key="KindGlyph"/>
+        <conv:KindBackgroundConverter x:Key="KindBg"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
         <Style TargetType="{x:Type Window}">

@@ -13,11 +13,11 @@
 .EXAMPLE
   .\build.ps1
 .EXAMPLE
-  .\build.ps1 -Version 0.2.0 -CertThumbprint 1A2B3C...   # sign with a cert in your store
+  .\build.ps1 -Version 0.3.0 -CertThumbprint 1A2B3C...   # sign with a cert in your store
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = '0.1.0',
+    [string]$Version = '0.2.0',
     [string]$CertThumbprint,
     [string]$TimestampUrl = 'http://timestamp.digicert.com',
     [switch]$SkipIntuneWin

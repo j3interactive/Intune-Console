@@ -13,11 +13,11 @@ internal static class Tone
         var s = (value?.ToString() ?? "").ToLowerInvariant();
         if (s.Length == 0) return "neutral";
         if (s.Contains("noncompliant") || s.Contains("fail") || s.Contains("error") || s.Contains("conflict")
-            || s.Contains("not encrypted")) return "bad";
+            || s.Contains("not encrypted") || s.Contains("disabled")) return "bad";
         if (s.Contains("grace") || s.Contains("pending") || s.Contains("offline") || s.Contains("not in datto")
             || s.Contains("unknown") || s.Contains("stale") || s.Contains("never")) return "warn";
         if (s.Contains("compliant") || s.Contains("installed") || s.Contains("online") || s.Contains("succeeded")
-            || s.Contains("completed") || s.Contains("success") || s.Contains("encrypted")) return "good";
+            || s.Contains("completed") || s.Contains("success") || s.Contains("encrypted") || s.Contains("enabled")) return "good";
         return "neutral";
     }
 
@@ -70,4 +70,31 @@ public sealed class NullToCollapsedConverter : IValueConverter
         value is null || (value is string s && s.Length == 0) ? Visibility.Collapsed : Visibility.Visible;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>Search result avatar: person or device glyph (Segoe MDL2 Assets).</summary>
+public sealed class KindGlyphConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value as string == "Person" ? "\uE77B" : "\uE7F8";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+public sealed class KindBackgroundConverter : IValueConverter
+{
+    private static readonly Brush Person = Make(0xE8, 0xF1, 0xFB);
+    private static readonly Brush Device = Make(0xF1, 0xF2, 0xF4);
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value as string == "Person" ? Person : Device;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+
+    private static Brush Make(byte r, byte g, byte b)
+    {
+        var br = new SolidColorBrush(Color.FromRgb(r, g, b));
+        br.Freeze();
+        return br;
+    }
 }

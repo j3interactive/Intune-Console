@@ -13,7 +13,7 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,20">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBox x:Name="SearchBox" Width="300" TextChanged="Search_TextChanged"
-                         ToolTip="Search device, user, serial or model"
+                         ToolTip="Filter by device, user, UPN, serial, model or MAC address"
                          AutomationProperties.Name="Search devices"/>
                 <Button Content="Refresh" Margin="8,0,0,0" Click="Refresh_Click"/>
                 <Button Content="Export CSV" Margin="8,0,0,0" Click="Export_Click"/>

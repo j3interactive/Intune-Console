@@ -87,13 +87,8 @@ public partial class DeviceListView : UserControl
         if (FilterDattoOffline.IsChecked == true && d.Datto is not { Online: false }) return false;
         if (FilterNotInDatto.IsChecked == true && d.Datto is not null) return false;
 
-        var q = SearchBox.Text.Trim();
-        if (q.Length == 0) return true;
-        return Has(d.DeviceName, q) || Has(d.UserDisplayName, q) || Has(d.UserPrincipalName, q)
-               || Has(d.SerialNumber, q) || Has(d.Model, q);
+        return d.Matches(SearchBox.Text);
     }
-
-    private static bool Has(string? s, string q) => s?.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
 
     private void UpdateCount()
     {

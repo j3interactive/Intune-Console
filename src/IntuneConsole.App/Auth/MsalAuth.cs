@@ -11,13 +11,10 @@ public sealed class MsalAuth
 {
     private const string Graph = "https://graph.microsoft.com/";
 
-    public static readonly string[] Scopes =
-    [
-        Graph + "DeviceManagementManagedDevices.ReadWrite.All",
-        Graph + "DeviceManagementManagedDevices.PrivilegedOperations.All",
-        Graph + "DeviceManagementApps.Read.All",
-        Graph + "DeviceManagementConfiguration.Read.All",
-    ];
+    /// <summary>".default" asks for every Graph permission an admin has consented to on the app
+    /// registration. New permissions (added in later versions) work as soon as consent is granted,
+    /// with no change here and no per-user consent prompts. See README for the list.</summary>
+    public static readonly string[] Scopes = [Graph + ".default"];
 
     private readonly IPublicClientApplication _app;
     private readonly SemaphoreSlim _gate = new(1, 1);

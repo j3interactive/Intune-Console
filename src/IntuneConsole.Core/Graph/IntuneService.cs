@@ -19,7 +19,8 @@ public sealed class IntuneService
 
     private const string DeviceSelect =
         "id,deviceName,userPrincipalName,userDisplayName,osVersion,model,manufacturer,serialNumber," +
-        "complianceState,joinType,deviceEnrollmentType,isEncrypted,lastSyncDateTime,azureADDeviceId,operatingSystem";
+        "complianceState,joinType,deviceEnrollmentType,isEncrypted,lastSyncDateTime,azureADDeviceId,operatingSystem," +
+        "wiFiMacAddress,userId";
 
     // ---------- Devices ----------
 
@@ -55,7 +56,18 @@ public sealed class IntuneService
         IsEncrypted = n.Bool("isEncrypted"),
         LastSyncDateTime = n.Date("lastSyncDateTime"),
         AzureAdDeviceId = n.Str("azureADDeviceId"),
+        OperatingSystem = n.Str("operatingSystem"),
+        WiFiMacAddress = n.Str("wiFiMacAddress"),
+        UserId = n.Str("userId"),
     };
+
+    /// <summary>All Intune devices (any platform) where this user is the primary user.</summary>
+    public async Task<List<ManagedDevice>> GetUserDevicesAsync(string userId, CancellationToken ct = default)
+    {
+        var filter = Uri.EscapeDataString($"userId eq '{userId}'");
+        var nodes = await _graph.GetAllAsync($"deviceManagement/managedDevices?$filter={filter}&$select={DeviceSelect}", ct: ct);
+        return nodes.Select(MapDevice).ToList();
+    }
 
     // ---------- Actions ----------
 

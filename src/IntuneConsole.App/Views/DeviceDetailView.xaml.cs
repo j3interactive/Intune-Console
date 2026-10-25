@@ -55,7 +55,8 @@ public partial class DeviceDetailView : UserControl
             .Convert(dattoLabel, typeof(object), null, System.Globalization.CultureInfo.CurrentCulture);
 
         InfoPanel.Children.Clear();
-        AddInfo("Primary user", d.UserDisplayName ?? d.UserPrincipalName ?? "None");
+        AddInfo("Primary user", d.UserDisplayName ?? d.UserPrincipalName ?? "None",
+            string.IsNullOrWhiteSpace(d.UserId) || d.UserId == Guid.Empty.ToString() ? null : OpenPrimaryUser);
         AddInfo("Model", string.Join(" ", new[] { d.Manufacturer, d.Model }.Where(s => !string.IsNullOrWhiteSpace(s))));
         AddInfo("OS version", d.OsVersion);
         AddInfo("Serial", d.SerialNumber);
@@ -76,10 +77,20 @@ public partial class DeviceDetailView : UserControl
         WebRemoteButton.IsEnabled = !string.IsNullOrWhiteSpace(d.Datto?.WebRemoteUrl);
     }
 
-    private void AddInfo(string label, string? value)
+    private void AddInfo(string label, string? value, Action? onClick = null)
     {
         var panel = new StackPanel { Width = 220, Margin = new Thickness(0, 0, 16, 14) };
         panel.Children.Add(new TextBlock { Text = label, Style = (Style)FindResource("Label") });
+        if (onClick is not null)
+        {
+            // Clickable value, e.g. the primary user opens their user page.
+            var link = new Button { Content = value, Style = (Style)FindResource("LinkButton"), FontWeight = FontWeights.Medium,
+                                    Margin = new Thickness(0, 2, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+            link.Click += (_, _) => onClick();
+            panel.Children.Add(link);
+            InfoPanel.Children.Add(panel);
+            return;
+        }
         panel.Children.Add(new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(value) ? "–" : value,
@@ -88,6 +99,17 @@ public partial class DeviceDetailView : UserControl
             Margin = new Thickness(0, 2, 0, 0)
         });
         InfoPanel.Children.Add(panel);
+    }
+
+    private void OpenPrimaryUser()
+    {
+        // The user page loads full details itself; seed it with what the device already knows.
+        Shell.Navigate(new UserView(new DirectoryUser
+        {
+            Id = _device.UserId!,
+            DisplayName = _device.UserDisplayName ?? _device.UserPrincipalName ?? "User",
+            UserPrincipalName = _device.UserPrincipalName,
+        }));
     }
 
     // ---------------- Loading ----------------

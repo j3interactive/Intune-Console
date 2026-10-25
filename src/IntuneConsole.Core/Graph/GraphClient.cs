@@ -21,20 +21,26 @@ public sealed class GraphClient
         _getToken = getToken;
     }
 
-    public Task<JsonNode?> GetAsync(string relativeOrAbsoluteUrl, CancellationToken ct = default) =>
-        SendAsync(HttpMethod.Get, relativeOrAbsoluteUrl, null, ct);
+    /// <summary>Header needed for directory advanced queries ($search, $count, some $filter).</summary>
+    public static readonly IReadOnlyDictionary<string, string> EventualConsistency =
+        new Dictionary<string, string> { ["ConsistencyLevel"] = "eventual" };
+
+    public Task<JsonNode?> GetAsync(string relativeOrAbsoluteUrl, CancellationToken ct = default,
+        IReadOnlyDictionary<string, string>? headers = null) =>
+        SendAsync(HttpMethod.Get, relativeOrAbsoluteUrl, null, ct, headers);
 
     public Task<JsonNode?> PostAsync(string relativeUrl, object? body, CancellationToken ct = default) =>
-        SendAsync(HttpMethod.Post, relativeUrl, body, ct);
+        SendAsync(HttpMethod.Post, relativeUrl, body, ct, null);
 
     /// <summary>GET a collection and follow @odata.nextLink until done (or maxItems reached).</summary>
-    public async Task<List<JsonNode>> GetAllAsync(string relativeUrl, int maxItems = 20000, CancellationToken ct = default)
+    public async Task<List<JsonNode>> GetAllAsync(string relativeUrl, int maxItems = 20000, CancellationToken ct = default,
+        IReadOnlyDictionary<string, string>? headers = null)
     {
         var items = new List<JsonNode>();
         string? url = relativeUrl;
         while (url is not null && items.Count < maxItems)
         {
-            var page = await GetAsync(url, ct).ConfigureAwait(false);
+            var page = await GetAsync(url, ct, headers).ConfigureAwait(false);
             if (page?["value"] is JsonArray arr)
                 foreach (var n in arr) if (n is not null) items.Add(n);
             url = page?["@odata.nextLink"]?.GetValue<string>();
@@ -42,7 +48,8 @@ public sealed class GraphClient
         return items;
     }
 
-    private async Task<JsonNode?> SendAsync(HttpMethod method, string url, object? body, CancellationToken ct)
+    private async Task<JsonNode?> SendAsync(HttpMethod method, string url, object? body, CancellationToken ct,
+        IReadOnlyDictionary<string, string>? headers)
     {
         var uri = url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? new Uri(url) : new Uri(new Uri(BetaBase), url);
 
@@ -51,6 +58,8 @@ public sealed class GraphClient
             using var req = new HttpRequestMessage(method, uri);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _getToken(ct).ConfigureAwait(false));
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            if (headers is not null)
+                foreach (var (k, v) in headers) req.Headers.TryAddWithoutValidation(k, v);
             if (body is not null)
             {
                 var json = body is JsonNode node ? node.ToJsonString() : JsonSerializer.Serialize(body);

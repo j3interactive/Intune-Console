@@ -8,7 +8,7 @@ Planned changes to the Intune Troubleshooting Console. Each item lists what it d
 
 ## v0.2: Find users and their devices
 
-### User search · Planned
+### User search · Shipped in v0.2.0
 
 Search for a person and land on their devices in one step. Today you have to know the device name.
 
@@ -17,17 +17,17 @@ Search for a person and land on their devices in one step. Today you have to kno
   - Name, UPN, job title, department, office, manager, account enabled or disabled
   - Every device where they're the primary user (Intune), plus devices they've signed in to recently
   - Each device's compliance, last check-in and Datto status, with one click into the device page
-  - Their recent sign-ins with app, device, location and result (needs Entra ID P1)
-- Search starts after 2 characters and works with partial names ("jsmi", "smith").
+  - Their recent sign-ins with app, device, location and result (you have Entra ID P1, so this is included)
+- Search starts after 2 characters. Names match whole words from the start ("john", "smi"), because of how Microsoft's directory search works; UPN, email and employee ID match from the start too.
 
 **Data:** Graph `/users` with `$search` (needs the `ConsistencyLevel: eventual` header), `/users/{id}/managedDevices`, `/users/{id}/registeredDevices`, and `/auditLogs/signIns`.
 
-**Setup:** add delegated permissions `User.Read.All`, `Device.Read.All` and `AuditLog.Read.All` to the app registration and grant admin consent again.
+**Setup:** add delegated permissions `User.Read.All` and `AuditLog.Read.All` to the app registration and grant admin consent again. Admins who should see sign-ins also need the **Reports Reader** (or Global Reader / Security Reader) role in Entra.
 
-### Better device search · Planned
+### Better device search · Partly shipped in v0.2.0
 
-- Search across all device fields at once: name, serial, user, UPN, model, asset tag, IP address and MAC address.
-- Saved filters, for example "Finance laptops not checked in for 7 days".
+- Search across all device fields at once: name, serial, user, UPN, model and Wi-Fi MAC are done. Asset tag comes with v0.3. IP address isn't in Intune's device list, so it would come from Datto later.
+- Saved filters, for example "Finance laptops not checked in for 7 days". (Moved to v0.3, alongside the asset fields it would filter on.)
 
 ---
 
@@ -41,17 +41,17 @@ Each device gets an asset record that combines live data with fields you maintai
 
 | Live (read only) | Maintained by your team |
 | --- | --- |
-| Serial, model, manufacturer (Intune) | Asset tag |
+| Serial (Dell service tag), model (Intune) | Asset tag |
 | CPU, RAM, disk size and free space (Datto audit) | Status: In use, In stock, Loaner, Repair, Retired, Lost |
 | Primary user, last check-in (Intune) | Purchase date, cost, supplier, PO number |
 | Autopilot group tag and profile (Intune) | Location, cost center |
-| Warranty end date (manufacturer lookup) | Notes |
+| Dell warranty: ship date, end date, support level (Dell API) | Notes |
 
 - **Assignment history:** every time the assigned user changes, the console records who, when and who made the change. This lets you answer "who had this laptop before?"
 - **Check out and check in** for loaners and new hires, with a printable handover sheet.
 - **Devices without Intune:** spares on a shelf, devices waiting for repair, retired devices. Add them by serial number.
-- **Warranty lookup** by serial number for Dell, Lenovo and HP. Each needs a free API key from the manufacturer.
-- **Import and export** to CSV, to load what you track in spreadsheets today.
+- **Dell warranty lookup** by service tag (all your devices are Dell). It uses Dell's free Warranty API through TechDirect: register at [techdirect.dell.com](https://techdirect.dell.com), request API access, and Dell issues a client ID and secret, usually within a few days. One key for the whole team, stored in each admin's Credential Manager. The console looks up warranties in batches and caches the results in the asset list, so it isn't calling Dell on every screen.
+- **Starting from scratch:** since nothing is tracked today, the first run builds the register for you. It creates one record per Intune device with live data and warranty already filled in, so your team only adds asset tags and statuses. CSV import and export are still there for bulk edits in Excel.
 - **Reports:** devices out of warranty in the next 90 days, devices older than 4 years, stock on hand, lost or unreturned devices.
 
 **Shared storage:** asset records have to be shared by all 4–5 admins, which the desktop app can't do on its own. The plan is a **SharePoint list** that the app reads and writes through Graph:
@@ -62,7 +62,9 @@ Each device gets an asset record that combines live data with fields you maintai
 
 **Setup:** create a SharePoint site (or use an existing IT one). Add the delegated permission `Sites.Selected` and grant the app access to that one site, which is a single PowerShell command included in the guide.
 
-**Needs decision:** if you already track assets somewhere (a spreadsheet, a PSA like Autotask, an existing list), the console can read from and write to that instead. Tell me where it lives.
+**Decided:** nothing is tracked today, so the SharePoint list is the system of record.
+
+**Start now:** request Dell TechDirect API access early, since approval takes a few days.
 
 ---
 
@@ -127,8 +129,8 @@ New delegated Graph permissions these features need, added only when a feature s
 | Permission | Used for | Version |
 | --- | --- | --- |
 | `User.Read.All` | User search and user page | v0.2 |
-| `Device.Read.All` | Entra device records, registered devices | v0.2 |
-| `AuditLog.Read.All` | Recent sign-ins (needs Entra ID P1) | v0.2 |
+| `AuditLog.Read.All` | Recent sign-ins (Entra ID P1, plus Reports Reader role) | v0.2 |
+| `Device.Read.All` | Entra device records for reconciliation | v0.5 |
 | `Sites.Selected` | Asset register in one SharePoint site | v0.3 |
 | `DeviceManagementServiceConfig.Read.All` | Autopilot group tag and profile | v0.3 |
 | `DeviceLocalCredential.Read.All` | LAPS password reveal | v0.5 |
@@ -138,10 +140,13 @@ All of them are delegated, so each admin can still only see and do what their ow
 
 ---
 
+## Decisions
+
+- **Devices:** all Dell, so warranty lookup uses Dell's API only.
+- **Licensing:** Entra ID P1, so sign-in history is included on the user page.
+- **Asset tracking:** none today; the SharePoint list becomes the register.
+
 ## Open questions
 
-1. Where do you track assets today, if anywhere?
-2. Do you have Entra ID P1 or P2? Sign-in history on the user page needs it.
-3. Which manufacturers make most of your devices (for warranty lookup)?
-4. Should free-form PowerShell be available to every admin, or only saved snippets for some?
-5. From the v0.5 list, what's most useful to you first?
+1. Should free-form PowerShell be available to every admin, or only saved snippets for some?
+2. From the v0.5 list, what's most useful to you first?
