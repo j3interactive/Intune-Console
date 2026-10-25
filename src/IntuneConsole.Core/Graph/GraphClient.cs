@@ -32,6 +32,9 @@ public sealed class GraphClient
     public Task<JsonNode?> PostAsync(string relativeUrl, object? body, CancellationToken ct = default) =>
         SendAsync(HttpMethod.Post, relativeUrl, body, ct, null);
 
+    public Task<JsonNode?> PatchAsync(string relativeUrl, object? body, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Patch, relativeUrl, body, ct, null);
+
     /// <summary>GET a collection and follow @odata.nextLink until done (or maxItems reached).</summary>
     public async Task<List<JsonNode>> GetAllAsync(string relativeUrl, int maxItems = 20000, CancellationToken ct = default,
         IReadOnlyDictionary<string, string>? headers = null)

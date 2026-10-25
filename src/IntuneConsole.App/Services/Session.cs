@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
 using IntuneConsole.App.Auth;
+using IntuneConsole.Core.Assets;
 using IntuneConsole.Core.Datto;
 using IntuneConsole.Core.Graph;
 using IntuneConsole.Core.Models;
@@ -22,6 +23,7 @@ public sealed class Session
     public const string DattoSecretSecret = "DattoApiSecret";
     public const string UploadSasSecret = "FileDropUploadSas";
     public const string ReadSasSecret = "FileDropReadSas";
+    public const string DellSecretSecret = "DellClientSecret";
 
     private static readonly HttpClient Http = CreateHttp();
 
@@ -41,6 +43,12 @@ public sealed class Session
     public SecretsService? Secrets { get; private set; }
     public RecordsService? Records { get; private set; }
     public AppCheckService? AppCheck { get; private set; }
+    public AssetStore? Assets { get; private set; }
+    public DellWarranty? Dell { get; private set; }
+
+    /// <summary>Cached asset register (loaded on the Assets screen, reused on device pages).</summary>
+    public List<AssetRecord>? AssetRecords { get; private set; }
+    public List<AssetHistoryEntry>? AssetHistory { get; private set; }
     public DattoClient? Datto { get; private set; }
     public FileDrop? FileDrop { get; private set; }
 
@@ -105,6 +113,9 @@ public sealed class Session
         Secrets = null;
         Records = null;
         AppCheck = null;
+        Assets = null;
+        AssetRecords = null;
+        AssetHistory = null;
         if (settings.IsSignInConfigured)
         {
             // Called on the UI thread; grab the main window handle now so sign-in prompts have a parent.
@@ -117,12 +128,21 @@ public sealed class Session
             Secrets = new SecretsService(graph);
             Records = new RecordsService(graph);
             AppCheck = new AppCheckService(graph, Directory);
+            if (settings.IsAssetRegisterConfigured)
+                Assets = new AssetStore(new SharePointLists(graph, settings.AssetSiteUrl.Trim()),
+                    string.IsNullOrWhiteSpace(settings.AssetsListName) ? "Assets" : settings.AssetsListName.Trim(),
+                    string.IsNullOrWhiteSpace(settings.AssetHistoryListName) ? "Asset History" : settings.AssetHistoryListName.Trim());
         }
 
         var key = CredentialStore.Read(DattoKeySecret);
         var secret = CredentialStore.Read(DattoSecretSecret);
         Datto = settings.IsDattoConfigured && !string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(secret)
             ? new DattoClient(Http, settings.DattoApiUrl.Trim(), key, secret)
+            : null;
+
+        var dellSecret = CredentialStore.Read(DellSecretSecret);
+        Dell = !string.IsNullOrWhiteSpace(settings.DellClientId) && !string.IsNullOrEmpty(dellSecret)
+            ? new DellWarranty(Http, settings.DellClientId.Trim(), dellSecret)
             : null;
 
         var upload = CredentialStore.Read(UploadSasSecret);
@@ -152,6 +172,35 @@ public sealed class Session
 
         Devices = devices;
         DevicesLoadedAt = DateTimeOffset.Now;
+    }
+
+    public async Task LoadAssetsAsync(bool includeHistory = true, CancellationToken ct = default)
+    {
+        if (Assets is null) throw new InvalidOperationException("The asset register isn't set up yet. Add the SharePoint site in Settings.");
+        var recordsTask = Assets.GetAssetsAsync(ct);
+        var historyTask = includeHistory ? Assets.GetHistoryAsync(ct) : null;
+        AssetRecords = await recordsTask;
+        if (historyTask is not null) AssetHistory = await historyTask;
+    }
+
+    public AssetRecord? FindAsset(string? serial) =>
+        string.IsNullOrWhiteSpace(serial) ? null
+        : AssetRecords?.FirstOrDefault(r => AssetRegister.Key(r.SerialNumber) == AssetRegister.Key(serial));
+
+    /// <summary>Saves a new or changed record, writes history for what changed, and updates the cache.</summary>
+    public async Task SaveAssetAsync(AssetRecord? before, AssetRecord after, string? notes = null, string? eventOverride = null,
+        CancellationToken ct = default)
+    {
+        if (Assets is null) throw new InvalidOperationException("The asset register isn't set up yet.");
+        var by = Auth?.UserName ?? Environment.UserName;
+        var changes = AssetRegister.Changes(before, after, by, notes, eventOverride);
+        await Assets.SaveAsync(after, changes, ct);
+
+        AssetRecords ??= new();
+        var i = AssetRecords.FindIndex(r => AssetRegister.Key(r.SerialNumber) == AssetRegister.Key(after.SerialNumber));
+        if (i >= 0) AssetRecords[i] = after; else AssetRecords.Add(after);
+        AssetHistory ??= new();
+        AssetHistory.InsertRange(0, changes);
     }
 
     /// <summary>Finds a Datto component's UID by the name set in Settings.</summary>

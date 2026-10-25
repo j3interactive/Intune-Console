@@ -2,6 +2,36 @@
 
 Shipped changes to the Intune Troubleshooting Console. Planned work is in [ROADMAP.md](ROADMAP.md).
 
+## v0.4.0 · 2026-10-25
+
+### Added
+
+- **Assets screen** (new in the sidebar): the asset register, stored in SharePoint and joined live to Intune by serial number.
+  - Columns: serial, asset tag, status, device, model, who it's assigned to, the Intune primary user, warranty, age and last seen. An *Attention* column flags problems.
+  - Tiles: records in the register, devices not in it yet, in stock, warranty ending in 90 days, and assignment differing from Intune.
+  - Views: not in register, assignment differs, warranty ends in 90 days, warranty expired (in use), older than 4 years, loaners out, in use but not in Intune, warranty unknown, and each status.
+  - **Add missing devices:** creates records for every Intune device not in the register, assigned to its primary user, with Dell warranty filled in.
+  - **Update warranties:** Dell lookups for records missing warranty data or not checked in 30 days.
+  - **Add asset:** for spares, repairs and anything not in Intune.
+  - **Export CSV / Import CSV:** for bulk edits in Excel. The import previews new, changed and unchanged rows and lists problem rows before applying anything. Blank cells leave existing values alone.
+- **Asset window:** edit all fields, look up the Dell warranty, see live Intune data and the full history (who changed what, when).
+  - **Assign / check out:** search for a person, issue as In use or Loaner, add accessories and notes, and print a handover sheet to sign.
+  - **Check in:** set the device to In stock, Repair, Retired or Lost, record its condition, and optionally print a return sheet.
+  - Every change writes an entry to the Asset History list.
+- **Device page** shows the asset tag, status and warranty in its summary, and opens the asset window.
+- **Settings > Asset register:** SharePoint site and list names, organization name for handover sheets, and Dell TechDirect client ID and secret, with a **Test asset register** button.
+- **scripts\sharepoint\Setup-AssetRegister.ps1** creates the lists and grants the app access to that one site.
+
+### Setup needed
+
+- See README section 7: `Sites.Selected` permission, run the setup script once, give admins Member access to the site, and enter the site in Settings.
+- Optional: Dell TechDirect API key for warranty lookups.
+
+### Notes
+
+- The Dell API response format is based on published examples. If the first warranty lookup returns blank dates, send me the message and I'll adjust it.
+- 106 automated checks now pass, including SharePoint field mapping, Dell parsing, the register join and reports, change history, CSV import planning and the handover sheet. The Windows UI still hasn't been compiled on Windows.
+
 ## v0.3.1 · 2026-10-25
 
 ### Added

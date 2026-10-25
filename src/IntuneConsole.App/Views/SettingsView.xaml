@@ -87,6 +87,56 @@
                 </StackPanel>
             </Border>
 
+            <!-- Asset register -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Asset register" Style="{StaticResource H2}"/>
+                    <TextBlock Style="{StaticResource Hint}" Text="SharePoint lists that hold asset records, shared by all admins. Run scripts\sharepoint\Setup-AssetRegister.ps1 once to create them."/>
+                    <TextBlock Text="SharePoint site URL" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="AssetSiteBox" AutomationProperties.Name="SharePoint site URL"/>
+                    <TextBlock Style="{StaticResource Hint}" Text="e.g. https://contoso.sharepoint.com/sites/IT"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Assets list name" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="AssetsListBox" AutomationProperties.Name="Assets list name"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="History list name" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="HistoryListBox" AutomationProperties.Name="History list name"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="Organization name (printed on handover sheets)" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="OrgNameBox" AutomationProperties.Name="Organization name"/>
+
+                    <TextBlock Text="Dell warranty (TechDirect API)" Style="{StaticResource H2}" Margin="0,20,0,0"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Client ID" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="DellIdBox" AutomationProperties.Name="Dell client ID"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Client secret" Style="{StaticResource FieldLabel}"/>
+                            <PasswordBox x:Name="DellSecretBox" AutomationProperties.Name="Dell client secret"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock x:Name="DellSavedHint" Style="{StaticResource Hint}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="Test asset register" Click="TestAssets_Click"/>
+                    </StackPanel>
+                    <TextBlock x:Name="AssetTestResult" Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
             <!-- File drop -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>

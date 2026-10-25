@@ -10,6 +10,7 @@ A Windows desktop app for your admin team that puts Intune troubleshooting and D
 - **"Why isn't this installing?"** for any app on a device: walks assignment, exclusions, intent, assignment filters (evaluated against the device), requirements, dependencies and the install result, and says which gate is blocking.
 - **Handover readiness check:** Autopilot, check-in, compliance, BitLocker, apps, primary user, Datto agent and LAPS backup as one pass/fail checklist.
 - **Bulk actions:** sync, collect diagnostics, run a Remediation, restart the IME, clear the IME cache or restart devices across many devices at once, from a selection or a pasted list of names or serials.
+- **Asset register** in a SharePoint list shared by the team: asset tag, status (in use, in stock, loaner, repair, retired, lost), assignment with full history, purchase details and Dell warranty. It's joined to Intune live, with built-in reports, check-out and check-in with a printable handover sheet, and CSV import and export.
 - **Record health check** that compares Intune, Entra ID, Autopilot and Datto and lists duplicates, stale records and devices missing from one of them.
 - **Log viewer** that downloads and unpacks Intune diagnostics bundles, parses the Intune Management Extension logs, highlights errors and suggests a likely cause with the log line it came from.
 
@@ -44,6 +45,7 @@ In the [Entra admin center](https://entra.microsoft.com) go to **Identity > Appl
    - `Device.Read.All` and `DeviceManagementServiceConfig.Read.All` (record health check: Entra and Autopilot records, added in v0.3)
    - `DeviceLocalCredential.Read.All` and `BitlockerKey.Read.All` (reveal LAPS passwords and BitLocker keys, added in v0.3)
    - `GroupMember.Read.All` (group membership for the "why isn't this installing?" check, added in v0.3.1)
+   - `Sites.Selected` (the asset register's SharePoint site only, added in v0.4; see section 7)
 7. Click **Grant admin consent for <your tenant>**.
 
    The app asks for whatever permissions have admin consent, so when a new version needs another permission, adding it here and granting consent is all it takes. Until then, only the feature that needs it shows a message.
@@ -120,7 +122,7 @@ To code-sign the exe with a certificate in your store, add `-CertThumbprint <thu
 - **Detection rules:** Use a custom detection script → upload `out\Detect.ps1`
 - **Assignments:** Required, to your admins group.
 
-It installs to `C:\Program Files\IntuneConsole` with a Start Menu shortcut. For a new version, run `.\build.ps1 -Version 0.4.0` and supersede or update the app; the detection script checks the version.
+It installs to `C:\Program Files\IntuneConsole` with a Start Menu shortcut. For a new version, run `.\build.ps1 -Version 0.5.0` and supersede or update the app; the detection script checks the version.
 
 ## 6. File drop for "Push file" (optional, ~10 min)
 
@@ -137,6 +139,25 @@ Datto components can't receive a file at run time, so the console stages the fil
 5. In the console's **Settings > File drop**, enter the container URL (`https://<account>.blob.core.windows.net/intune-console-drop`) and paste both tokens.
 
 Devices only ever get the read-only token, inside a link to one file. Every file's SHA-256 hash is checked on the device before it's saved. Devices need outbound HTTPS to `*.blob.core.windows.net`.
+
+## 7. Asset register (optional, ~15 min)
+
+Asset records live in two SharePoint lists, **Assets** and **Asset History**, on a site you choose (an existing IT site is fine). Every admin sees the same register, SharePoint keeps version history, and you can open the lists in Excel. It's included in Microsoft 365, so there's nothing extra to pay for.
+
+1. **App permission:** in the app registration, add the delegated Graph permission `Sites.Selected` and grant admin consent. On its own, it gives access to no sites.
+2. **Create the lists and grant the app that one site.** A SharePoint Administrator runs this once on any PC:
+
+   ```powershell
+   Install-Module Microsoft.Graph.Sites -Scope CurrentUser     # first time only
+   .\scripts\sharepoint\Setup-AssetRegister.ps1 -SiteUrl https://contoso.sharepoint.com/sites/IT -ClientId <app client ID>
+   ```
+
+   It creates both lists with the right columns, or adds any missing columns if they exist. It then gives the console's app write access to that site only.
+3. **Site access for admins:** each admin needs Edit (Member) access to the site. With `Sites.Selected`, a person can only do what both the app and they are allowed to do.
+4. **In the console:** Settings > Asset register > enter the site URL, then **Test asset register**.
+5. **First fill:** open **Assets** and click **Add missing devices**. This creates a record for every Intune Windows device, assigned to its primary user and with Dell warranty filled in. Your team then only adds asset tags, statuses and purchase details, in the app or in bulk with Export CSV, edit in Excel, then Import CSV.
+
+**Dell warranty (optional):** request API access at [techdirect.dell.com](https://techdirect.dell.com) (TechDirect > APIs > Warranty). Dell issues one client ID and secret for your organization, usually within a few days. Each admin enters them in Settings; the secret goes into Windows Credential Manager. **Update warranties** looks up records with no warranty yet, or not checked for 30 days, 100 service tags per call.
 
 ## First run
 
@@ -164,6 +185,9 @@ Devices only ever get the read-only token, inside a link to one file. Every file
 | App check says group membership couldn't be read | Add `GroupMember.Read.All` with consent. |
 | Health check skips the primary user check | It reads PC sign-ins; add `AuditLog.Read.All` and give the admin Reports Reader. |
 | Health check skips Entra or Autopilot | Add `Device.Read.All` / `DeviceManagementServiceConfig.Read.All` with consent. |
+| Asset register says the list wasn't found | Run `Setup-AssetRegister.ps1` against the same site URL. |
+| Asset register says access denied | Check `Sites.Selected` has consent, the setup script granted the app the site, and the admin is a member of the site. |
+| "Dell sign-in failed" | Check the TechDirect client ID and secret; new keys can take a day to activate. |
 | Can't find someone by a partial name | Name search matches whole words from the start ("john", "smi"), not the middle of a word. UPN, email and employee ID match from the start. |
 
 If the build fails, copy the error lines and send them over.
@@ -176,7 +200,7 @@ If the build fails, copy the error lines and send them over.
 - The app keeps a local record of each admin's actions in `%LOCALAPPDATA%\IntuneConsole\actions.jsonl`. Intune's audit log and Datto's activity log are the authoritative records.
 - The Datto API key's security level controls what that admin can do in Datto. Use the least privileged level that can run components.
 
-## What's not in version 0.1
+## What's not included yet
 
 - Push file via Intune (for devices offline in Datto). Intune's on-demand remediation can't take per-run inputs.
 - Bulk actions across many devices.
@@ -186,10 +210,11 @@ If the build fails, copy the error lines and send them over.
 ## Project layout
 
 ```
-src/IntuneConsole.Core    Graph, Datto, log parsing, likely-cause rules (no Windows dependencies)
+src/IntuneConsole.Core    Graph, Datto, SharePoint, Dell, log parsing and all check logic (no Windows dependencies)
 src/IntuneConsole.App     WPF app: sign-in, views, Credential Manager, event log reader
 scripts/datto             Datto components
 scripts/remediations      Intune Remediations
+scripts/sharepoint        Asset register setup (SharePoint lists and site access)
 packaging                 Install / Uninstall / Detect scripts, defaults example
 build.ps1                 Build + package
 ```

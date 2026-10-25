@@ -66,6 +66,17 @@ public partial class DeviceDetailView : UserControl
         AddInfo("Join / enrollment", string.Join(" · ", new[] { d.JoinType, d.EnrollmentType }.Where(s => !string.IsNullOrWhiteSpace(s))));
         AddInfo("Last Intune check-in", d.LastSyncDateTime is null ? "Never" : $"{d.LastSyncText} ({d.LastSyncDateTime.Value.ToLocalTime():g})");
         AddInfo("Encryption", d.IsEncrypted switch { true => "Encrypted", false => "Not encrypted", _ => "Unknown" });
+        if (S.Assets is not null)
+        {
+            var asset = S.FindAsset(d.SerialNumber);
+            if (S.AssetRecords is null) AddInfo("Asset", "Loading…");
+            else if (asset is null) AddInfo("Asset", "Not in register · add", OpenAsset);
+            else AddInfo("Asset", string.Join(" · ", new[]
+                {
+                    asset.AssetTag, asset.Status,
+                    asset.WarrantyEnd is null ? null : (asset.WarrantyEnd < DateTimeOffset.UtcNow ? "warranty expired" : $"warranty to {asset.WarrantyEnd.Value.ToLocalTime():yyyy-MM-dd}"),
+                }.Where(s => !string.IsNullOrWhiteSpace(s))), OpenAsset);
+        }
         if (d.Datto is not null)
             AddInfo("Datto last seen", d.Datto.LastSeen is null ? "Unknown" : $"{Humanize.Ago(d.Datto.LastSeen)} · {d.Datto.SiteName}");
 
@@ -102,6 +113,13 @@ public partial class DeviceDetailView : UserControl
             Margin = new Thickness(0, 2, 0, 0)
         });
         InfoPanel.Children.Add(panel);
+    }
+
+    private void OpenAsset()
+    {
+        var record = S.FindAsset(_device.SerialNumber);
+        new AssetWindow(new IntuneConsole.Core.Models.AssetRow { Record = record, Device = _device }).ShowDialog();
+        RenderHeader();
     }
 
     private void OpenPrimaryUser()
@@ -186,6 +204,12 @@ public partial class DeviceDetailView : UserControl
             if (_latestDiag?.IsPending == true) StartPolling();
         }
         catch (Exception ex) { DiagStatusText.Text = $"Couldn't check diagnostics: {ex.Message}"; }
+
+        if (S.Assets is not null && S.AssetRecords is null)
+        {
+            try { await S.LoadAssetsAsync(); } catch (Exception ex) { problems.Add($"asset register ({ex.Message})"); }
+            RenderHeader();
+        }
 
         if (problems.Count > 0)
             Shell.Status("Some sections didn't load: " + string.Join("; ", problems), isError: true);

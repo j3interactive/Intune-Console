@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private DeviceListView? _deviceList;
     private LogViewerView? _lastLogViewer;
     private HealthCheckView? _healthCheck;
+    private AssetsView? _assets;
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(10) };
     private readonly DispatcherTimer _searchDebounce = new() { Interval = TimeSpan.FromMilliseconds(300) };
     private CancellationTokenSource? _searchCts;
@@ -51,6 +52,7 @@ public partial class MainWindow : Window
         _deviceList = null;
         _lastLogViewer = null;
         _healthCheck = null;
+        _assets = null;
     }
 
     public void ShowView(UserControl view)
@@ -62,6 +64,7 @@ public partial class MainWindow : Window
         NavDiagnostics.IsChecked = view is LogViewerView;
         NavSettings.IsChecked = view is SettingsView;
         NavHealth.IsChecked = view is HealthCheckView;
+        NavAssets.IsChecked = view is AssetsView;
         RefreshSignedIn();
     }
 
@@ -224,6 +227,8 @@ public partial class MainWindow : Window
 
     private void NavDiagnostics_Click(object sender, RoutedEventArgs e) =>
         ShowView(_lastLogViewer ?? new LogViewerView(null, null));
+
+    private void NavAssets_Click(object sender, RoutedEventArgs e) => ShowView(_assets ??= new AssetsView());
 
     private void NavHealth_Click(object sender, RoutedEventArgs e) => ShowView(_healthCheck ??= new HealthCheckView());
 

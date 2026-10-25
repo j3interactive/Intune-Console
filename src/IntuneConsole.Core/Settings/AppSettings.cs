@@ -20,6 +20,13 @@ public sealed class AppSettings
     // File drop (Azure Blob container used to hand files to the Datto push component)
     public string FileDropContainerUrl { get; set; } = "";   // https://<account>.blob.core.windows.net/<container>
 
+    // Asset register (SharePoint) and Dell warranty
+    public string AssetSiteUrl { get; set; } = "";           // https://contoso.sharepoint.com/sites/IT
+    public string AssetsListName { get; set; } = "Assets";
+    public string AssetHistoryListName { get; set; } = "Asset History";
+    public string DellClientId { get; set; } = "";           // secret lives in Credential Manager
+    public string OrganizationName { get; set; } = "";       // printed on handover sheets
+
     // Diagnostics
     public int StaleDays { get; set; } = 7;
     public string DiagnosticsFolder { get; set; } = "";      // default: %LOCALAPPDATA%\IntuneConsole\Diagnostics
@@ -27,6 +34,7 @@ public sealed class AppSettings
     /// <summary>Tenant can be the GUID or a domain like contoso.onmicrosoft.com.</summary>
     public bool IsSignInConfigured => !string.IsNullOrWhiteSpace(TenantId) && Guid.TryParse(ClientId, out _);
     public bool IsDattoConfigured => !string.IsNullOrWhiteSpace(DattoApiUrl);
+    public bool IsAssetRegisterConfigured => AssetSiteUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
     public bool IsFileDropConfigured => FileDropContainerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 }
 

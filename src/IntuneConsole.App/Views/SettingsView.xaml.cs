@@ -21,6 +21,14 @@ public partial class SettingsView : UserControl
         CompResetBox.Text = s.DattoResetAppComponent;
         CompPushBox.Text = s.DattoPushFileComponent;
         DropUrlBox.Text = s.FileDropContainerUrl;
+        AssetSiteBox.Text = s.AssetSiteUrl;
+        AssetsListBox.Text = s.AssetsListName;
+        HistoryListBox.Text = s.AssetHistoryListName;
+        OrgNameBox.Text = s.OrganizationName;
+        DellIdBox.Text = s.DellClientId;
+        DellSavedHint.Text = string.IsNullOrEmpty(CredentialStore.Read(Session.DellSecretSecret))
+            ? "Request API access at techdirect.dell.com; Dell issues one client ID and secret for your organization."
+            : "A secret is saved. Leave it blank to keep it.";
         StaleDaysBox.Text = s.StaleDays.ToString();
         DiagFolderBox.Text = s.DiagnosticsFolder;
 
@@ -43,6 +51,11 @@ public partial class SettingsView : UserControl
             DattoResetAppComponent = Or(CompResetBox.Text, s.DattoResetAppComponent),
             DattoPushFileComponent = Or(CompPushBox.Text, s.DattoPushFileComponent),
             FileDropContainerUrl = DropUrlBox.Text.Trim().TrimEnd('/'),
+            AssetSiteUrl = AssetSiteBox.Text.Trim().TrimEnd('/'),
+            AssetsListName = Or(AssetsListBox.Text, "Assets"),
+            AssetHistoryListName = Or(HistoryListBox.Text, "Asset History"),
+            OrganizationName = OrgNameBox.Text.Trim(),
+            DellClientId = DellIdBox.Text.Trim(),
             StaleDays = int.TryParse(StaleDaysBox.Text, out var d) && d is > 0 and < 366 ? d : 7,
             DiagnosticsFolder = DiagFolderBox.Text.Trim(),
         };
@@ -60,6 +73,11 @@ public partial class SettingsView : UserControl
         if (s.DattoApiUrl.Length > 0 && !s.DattoApiUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             Shell.Status("The Datto API URL should start with https://", isError: true);
+            return false;
+        }
+        if (s.AssetSiteUrl.Length > 0 && !s.AssetSiteUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            Shell.Status("The SharePoint site URL should start with https://", isError: true);
             return false;
         }
         if (s.FileDropContainerUrl.Length > 0 &&
@@ -81,6 +99,7 @@ public partial class SettingsView : UserControl
             if (DattoKeyBox.Password.Length > 0) CredentialStore.Write(Session.DattoKeySecret, DattoKeyBox.Password.Trim());
             if (DattoSecretBox.Password.Length > 0) CredentialStore.Write(Session.DattoSecretSecret, DattoSecretBox.Password.Trim());
             if (UploadSasBox.Password.Length > 0) CredentialStore.Write(Session.UploadSasSecret, UploadSasBox.Password.Trim().TrimStart('?'));
+            if (DellSecretBox.Password.Length > 0) CredentialStore.Write(Session.DellSecretSecret, DellSecretBox.Password.Trim());
             if (ReadSasBox.Password.Length > 0) CredentialStore.Write(Session.ReadSasSecret, ReadSasBox.Password.Trim().TrimStart('?'));
             SettingsStore.Save(s);
         }
@@ -100,6 +119,41 @@ public partial class SettingsView : UserControl
         if (!SaveCore()) return;
         Shell.Status("Settings saved.");
         (Application.Current.MainWindow as MainWindow)?.ShowDevices();
+    }
+
+    private async void TestAssets_Click(object sender, RoutedEventArgs e)
+    {
+        if (!SaveCore()) return;
+        var s = Session.Current;
+        if (s.Assets is null)
+        {
+            AssetTestResult.Text = "Enter the SharePoint site URL first.";
+            return;
+        }
+        await Shell.Run("Testing the asset register…", async () =>
+        {
+            var parts = new List<string>();
+            try
+            {
+                await s.LoadAssetsAsync();
+                parts.Add($"SharePoint OK: {s.AssetRecords!.Count} asset(s), {s.AssetHistory!.Count} history entries.");
+            }
+            catch (Exception ex)
+            {
+                parts.Add($"SharePoint failed: {ex.Message} Check the setup script ran, Sites.Selected has consent, and you're a member of the site.");
+            }
+            if (s.Dell is null) parts.Add("Dell warranty not set up.");
+            else
+            {
+                try
+                {
+                    await s.Dell.LookupAsync(["0000000"]);
+                    parts.Add("Dell API OK.");
+                }
+                catch (Exception ex) { parts.Add($"Dell API failed: {ex.Message}"); }
+            }
+            AssetTestResult.Text = string.Join(" ", parts);
+        });
     }
 
     private async void TestDatto_Click(object sender, RoutedEventArgs e)

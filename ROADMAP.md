@@ -33,7 +33,7 @@ Search for a person and land on their devices in one step. Today you have to kno
 
 ## v0.4: Asset management
 
-### Asset records · Planned
+### Asset records · Shipped in v0.4.0
 
 Intune and Datto know what a device *is*, but neither tracks who it was issued to over time, what it cost, or where it is when it's not enrolled. This adds a lightweight asset register.
 
@@ -42,9 +42,9 @@ Each device gets an asset record that combines live data with fields you maintai
 | Live (read only) | Maintained by your team |
 | --- | --- |
 | Serial (Dell service tag), model (Intune) | Asset tag |
-| CPU, RAM, disk size and free space (Datto audit) | Status: In use, In stock, Loaner, Repair, Retired, Lost |
+| CPU, RAM, disk size and free space (Datto audit) *(not yet)* | Status: In use, In stock, Loaner, Repair, Retired, Lost |
 | Primary user, last check-in (Intune) | Purchase date, cost, supplier, PO number |
-| Autopilot group tag and profile (Intune) | Location, cost center |
+| Autopilot group tag and profile (Intune) *(not yet; shown in the readiness check)* | Location, cost center |
 | Dell warranty: ship date, end date, support level (Dell API) | Notes |
 
 - **Assignment history:** every time the assigned user changes, the console records who, when and who made the change. This lets you answer "who had this laptop before?"
@@ -64,7 +64,7 @@ Each device gets an asset record that combines live data with fields you maintai
 
 **Decided:** nothing is tracked today, so the SharePoint list is the system of record.
 
-**Start now:** request Dell TechDirect API access early, since approval takes a few days.
+**Not done yet in v0.4:** hardware details from Datto's audit on the asset window, the Autopilot group tag on the asset record, and saved custom filters (the built-in views cover the common reports).
 
 ---
 
@@ -150,5 +150,4 @@ All of them are delegated, so each admin can still only see and do what their ow
 
 ## Open questions
 
-1. Next up is asset management (v0.4). Have you requested Dell TechDirect API access? The warranty lookup needs it.
-2. Health score and the offboarding checklist are the remaining *Useful* features. Offboarding fits best after asset management, since it sets asset status.
+1. Next: the offboarding checklist (uses the asset register), then remote control and PowerShell (v0.5), then the health score. Change the order if you prefer.
