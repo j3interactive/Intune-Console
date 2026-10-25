@@ -418,6 +418,75 @@ public partial class DeviceDetailView : UserControl
         SecretsNote.Visibility = Visibility.Visible;
     }
 
+    // ---------------- App install check ----------------
+
+    private void AppsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        AppCheckButton.IsEnabled = AppsGrid.SelectedItem is AppInstallStatus { ApplicationId.Length: > 0 };
+
+    private void AppsGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (AppsGrid.SelectedItem is AppInstallStatus) AppCheck_Click(sender, e);
+    }
+
+    private async void AppCheck_Click(object sender, RoutedEventArgs e)
+    {
+        if (AppsGrid.SelectedItem is not AppInstallStatus row || string.IsNullOrEmpty(row.ApplicationId) || S.AppCheck is null) return;
+        CheckResult? result = null;
+        string? note = null;
+        await Shell.Run($"Checking {row.AppName}: assignments, filters, requirements…", async () =>
+        {
+            var appTask = S.AppCheck.GetAppAsync(row.ApplicationId);
+            var factsTask = S.AppCheck.GetDeviceFactsAsync(_device);
+            var (app, assignments) = await appTask;
+            var facts = await factsTask;
+            if (!facts.GroupsKnown) note = "Group membership couldn't be read; add GroupMember.Read.All for a complete check.";
+            result = AppInstallCheck.Evaluate(app, assignments, facts, row, _apps ?? new List<AppInstallStatus>());
+        });
+        if (result is null) return;
+        S.Log(_device.DeviceName, $"App check: {row.AppName}", "Console", result.Overall.ToString());
+        CheckListWindow.Show(result, note ?? "Intune evaluates custom requirement scripts and some filter properties on the device itself.");
+    }
+
+    // ---------------- Readiness ----------------
+
+    private async void Readiness_Click(object sender, RoutedEventArgs e)
+    {
+        if (S.Records is null || S.Secrets is null) return;
+        AutopilotDevice? ap = null;
+        bool apKnown = false, lapsKnown = false;
+        DateTimeOffset? lapsBackup = null;
+
+        await Shell.Run("Checking readiness…", async () =>
+        {
+            var apTask = S.Records.GetAutopilotDevicesAsync();
+            Task<DateTimeOffset?>? lapsTask = string.IsNullOrEmpty(_device.AzureAdDeviceId) ? null : S.Secrets.GetLapsLastBackupAsync(_device.AzureAdDeviceId);
+            try
+            {
+                var all = await apTask;
+                ap = all.FirstOrDefault(a => string.Equals(a.SerialNumber?.Trim(), _device.SerialNumber?.Trim(), StringComparison.OrdinalIgnoreCase));
+                apKnown = true;
+            }
+            catch (Exception) { }
+            if (lapsTask is not null)
+            {
+                try { lapsBackup = await lapsTask; lapsKnown = true; } catch (Exception) { }
+            }
+        });
+
+        var result = Readiness.Evaluate(new Readiness.Inputs
+        {
+            Device = _device,
+            Autopilot = ap,
+            AutopilotKnown = apKnown,
+            Apps = _apps,
+            LapsLastBackup = lapsBackup,
+            LapsKnown = lapsKnown,
+            DattoConfigured = S.Datto is not null,
+        });
+        S.Log(_device.DeviceName, "Readiness check", "Console", result.Verdict);
+        CheckListWindow.Show(result, "Checks the LAPS backup date only; no password is revealed.");
+    }
+
     // ---------------- Ticket summary ----------------
 
     private void CopySummary_Click(object sender, RoutedEventArgs e)

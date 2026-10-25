@@ -39,6 +39,9 @@ public sealed class SignInEvent
     public string? FailureReason { get; init; }
     public bool IsInteractive { get; init; }
     public bool? IsCompliant { get; init; }
+    public string? UserId { get; init; }
+    public string? UserPrincipalName { get; init; }
+    public string? UserDisplayName { get; init; }
 
     public bool Succeeded => ErrorCode == 0;
     public string WhenText => When?.ToLocalTime().ToString("MMM d HH:mm") ?? "";

@@ -126,6 +126,16 @@ public partial class DeviceListView : UserControl
         if (DeviceGrid.SelectedItem is ManagedDevice d) Shell.Navigate(new DeviceDetailView(d));
     }
 
+    private void Bulk_Click(object sender, RoutedEventArgs e)
+    {
+        if (Session.Current.Devices.Count == 0)
+        {
+            Shell.Status("Load the device list first.", isError: true);
+            return;
+        }
+        new BulkActionWindow(DeviceGrid.SelectedItems.OfType<ManagedDevice>()).ShowDialog();
+    }
+
     private void Export_Click(object sender, RoutedEventArgs e)
     {
         if (_view is null) return;

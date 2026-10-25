@@ -11,7 +11,7 @@
     <AssemblyName>IntuneConsole</AssemblyName>
     <RootNamespace>IntuneConsole.App</RootNamespace>
     <Product>Intune Troubleshooting Console</Product>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- Lets the project build from non-Windows machines (e.g. CI) as well. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>

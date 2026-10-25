@@ -60,6 +60,7 @@ public partial class HealthCheckView : UserControl
         List<EntraDevice>? entra = null;
         List<AutopilotDevice>? autopilot = null;
         List<DattoDevice>? datto = null;
+        List<SignInEvent>? windowsSignIns = null;
 
         RunButton.IsEnabled = false;
         var ok = await Shell.Run("Reading Intune, Entra ID, Autopilot and Datto…", async () =>
@@ -69,6 +70,7 @@ public partial class HealthCheckView : UserControl
             var entraTask = s.Records.GetEntraDevicesAsync();
             var apTask = s.Records.GetAutopilotDevicesAsync();
             Task<List<DattoDevice>>? dattoTask = s.Datto?.GetDevicesAsync();
+            var signInTask = s.Directory!.GetWindowsSignInsAsync();
 
             intune = await intuneTask;
             try { entra = await entraTask; } catch (Exception ex) { notes.Add($"Entra ID skipped ({Short(ex)})"); }
@@ -78,12 +80,13 @@ public partial class HealthCheckView : UserControl
             {
                 try { datto = await dattoTask; } catch (Exception ex) { notes.Add($"Datto skipped ({Short(ex)})"); }
             }
+            try { windowsSignIns = await signInTask; } catch (Exception ex) { notes.Add($"Primary user check skipped ({Short(ex)})"); }
             if (datto is not null) DattoClient.MatchDevices(intune, datto);
         });
         RunButton.IsEnabled = true;
         if (!ok) return;
 
-        var findings = Reconciler.Analyze(new Reconciler.Inputs { Intune = intune, Entra = entra, Autopilot = autopilot, Datto = datto });
+        var findings = Reconciler.Analyze(new Reconciler.Inputs { Intune = intune, Entra = entra, Autopilot = autopilot, Datto = datto, WindowsSignIns = windowsSignIns });
         _rows = findings.Select(f => new Row { Finding = f }).ToList();
         _category = All;
         if (_rows.Count == 0) EmptyText.Text = "No mismatches found. Intune, Entra ID, Autopilot and Datto line up.";
@@ -92,7 +95,8 @@ public partial class HealthCheckView : UserControl
         var counts = $"{intune.Count(d => d.IsWindows)} Windows devices in Intune" +
                      (entra is null ? "" : $" · {entra.Count} Entra devices") +
                      (autopilot is null ? "" : $" · {autopilot.Count} Autopilot") +
-                     (datto is null ? "" : $" · {datto.Count} Datto");
+                     (datto is null ? "" : $" · {datto.Count} Datto") +
+                     (windowsSignIns is null ? "" : $" · {windowsSignIns.Count} PC sign-ins (14 days)");
         SubtitleText.Text = $"Checked {DateTime.Now:t}: {counts}." + (notes.Count > 0 ? $" {string.Join(". ", notes)}." : "");
         ExportButton.IsEnabled = _rows.Count > 0;
         var problems = findings.Count(f => f.Severity == FindingSeverity.Problem);

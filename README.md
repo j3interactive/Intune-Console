@@ -7,6 +7,9 @@ A Windows desktop app for your admin team that puts Intune troubleshooting and D
 - **Device page** with Intune actions (sync, restart, collect diagnostics), Intune Remediations run on demand, Datto actions (restart the Intune Management Extension, clear its download cache, reset a stuck Win32 app, open the device in Datto), app install errors explained in plain English, policy conflicts, and **push a file** to the device.
 - **Passwords and keys:** reveal a device's LAPS local admin password or BitLocker recovery key in one click, with a reason prompt and a logged reveal.
 - **Device timeline** that merges Intune changes and actions, the user's sign-ins on that device, console actions and check-ins into one list, plus a **ticket summary** you can paste into a ticket.
+- **"Why isn't this installing?"** for any app on a device: walks assignment, exclusions, intent, assignment filters (evaluated against the device), requirements, dependencies and the install result, and says which gate is blocking.
+- **Handover readiness check:** Autopilot, check-in, compliance, BitLocker, apps, primary user, Datto agent and LAPS backup as one pass/fail checklist.
+- **Bulk actions:** sync, collect diagnostics, run a Remediation, restart the IME, clear the IME cache or restart devices across many devices at once, from a selection or a pasted list of names or serials.
 - **Record health check** that compares Intune, Entra ID, Autopilot and Datto and lists duplicates, stale records and devices missing from one of them.
 - **Log viewer** that downloads and unpacks Intune diagnostics bundles, parses the Intune Management Extension logs, highlights errors and suggests a likely cause with the log line it came from.
 
@@ -40,6 +43,7 @@ In the [Entra admin center](https://entra.microsoft.com) go to **Identity > Appl
    - `AuditLog.Read.All` (recent sign-ins on the user page, added in v0.2)
    - `Device.Read.All` and `DeviceManagementServiceConfig.Read.All` (record health check: Entra and Autopilot records, added in v0.3)
    - `DeviceLocalCredential.Read.All` and `BitlockerKey.Read.All` (reveal LAPS passwords and BitLocker keys, added in v0.3)
+   - `GroupMember.Read.All` (group membership for the "why isn't this installing?" check, added in v0.3.1)
 7. Click **Grant admin consent for <your tenant>**.
 
    The app asks for whatever permissions have admin consent, so when a new version needs another permission, adding it here and granting consent is all it takes. Until then, only the feature that needs it shows a message.
@@ -157,6 +161,8 @@ Devices only ever get the read-only token, inside a link to one file. Every file
 | User page says sign-ins need a permission | Add `AuditLog.Read.All` with consent, and give the admin the Reports Reader role. |
 | LAPS or BitLocker says access denied | Add the permission with consent, and check the admin's Entra role (see step 1.7). |
 | "No LAPS password is backed up" | No Windows LAPS policy targets the device yet, or it hasn't rotated since the policy arrived. |
+| App check says group membership couldn't be read | Add `GroupMember.Read.All` with consent. |
+| Health check skips the primary user check | It reads PC sign-ins; add `AuditLog.Read.All` and give the admin Reports Reader. |
 | Health check skips Entra or Autopilot | Add `Device.Read.All` / `DeviceManagementServiceConfig.Read.All` with consent. |
 | Can't find someone by a partial name | Name search matches whole words from the start ("john", "smi"), not the middle of a word. UPN, email and employee ID match from the start. |
 

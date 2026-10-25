@@ -15,6 +15,8 @@ public static class Reconciler
     public const string NoGroupTag = "Autopilot: no group tag";
     public const string NotInAutopilot = "Not registered in Autopilot";
     public const string NeverEnrolled = "Autopilot: never enrolled";
+    public const string PrimaryUserMismatch = "Primary user mismatch";
+    public const string NoPrimaryUser = "No primary user, one main user";
 
     public sealed class Inputs
     {
@@ -22,6 +24,7 @@ public static class Reconciler
         public IReadOnlyList<EntraDevice>? Entra { get; init; }        // null = not loaded (no permission)
         public IReadOnlyList<AutopilotDevice>? Autopilot { get; init; }
         public IReadOnlyList<DattoDevice>? Datto { get; init; }
+        public IReadOnlyList<SignInEvent>? WindowsSignIns { get; init; }   // everyone's PC sign-ins, last 14 days
         public DateTimeOffset Now { get; init; } = DateTimeOffset.UtcNow;
     }
 
@@ -166,11 +169,60 @@ public static class Reconciler
                 });
         }
 
+        // 10 & 11. Who actually uses the device vs. the Intune primary user.
+        if (input.WindowsSignIns is not null)
+            findings.AddRange(PrimaryUserFindings(windows, input.WindowsSignIns));
+
         return findings
             .OrderByDescending(f => f.Severity)
             .ThenBy(f => f.Category)
             .ThenBy(f => f.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static IEnumerable<ReconciliationFinding> PrimaryUserFindings(List<ManagedDevice> windows, IReadOnlyList<SignInEvent> signIns)
+    {
+        var byDevice = signIns
+            .Where(s => s.Succeeded && !string.IsNullOrEmpty(s.EntraDeviceId) && !string.IsNullOrEmpty(s.UserId))
+            .GroupBy(s => s.EntraDeviceId!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var d in windows)
+        {
+            if (string.IsNullOrEmpty(d.AzureAdDeviceId) || !byDevice.TryGetValue(d.AzureAdDeviceId, out var events)) continue;
+            var perUser = events.GroupBy(e => e.UserId!, StringComparer.OrdinalIgnoreCase)
+                .Select(g => (UserId: g.Key, Count: g.Count(), Name: g.First().UserDisplayName ?? g.First().UserPrincipalName ?? g.Key))
+                .OrderByDescending(x => x.Count).ToList();
+            var top = perUser[0];
+            var total = perUser.Sum(x => x.Count);
+            // Only flag a clear main user: at least 3 sign-ins and most of the activity (skips shared PCs).
+            if (top.Count < 3 || top.Count < total * 0.6) continue;
+
+            var hasPrimary = !string.IsNullOrEmpty(d.UserId) && d.UserId != Guid.Empty.ToString();
+            if (!hasPrimary)
+                yield return new ReconciliationFinding
+                {
+                    Category = NoPrimaryUser,
+                    Severity = FindingSeverity.Info,
+                    DeviceName = d.DeviceName,
+                    SerialNumber = d.SerialNumber,
+                    IntuneDevice = d,
+                    Detail = $"No primary user, but {top.Name} signed in {top.Count} of {total} times in 14 days.",
+                    Suggestion = "If it's their PC, set them as primary user so user-targeted apps and Company Portal work.",
+                };
+            else if (!string.Equals(top.UserId, d.UserId, StringComparison.OrdinalIgnoreCase)
+                     && !perUser.Any(x => string.Equals(x.UserId, d.UserId, StringComparison.OrdinalIgnoreCase)))
+                yield return new ReconciliationFinding
+                {
+                    Category = PrimaryUserMismatch,
+                    Severity = FindingSeverity.Warning,
+                    DeviceName = d.DeviceName,
+                    SerialNumber = d.SerialNumber,
+                    IntuneDevice = d,
+                    Detail = $"Primary user is {d.UserDisplayName ?? d.UserPrincipalName}, who didn't sign in for 14 days. {top.Name} signed in {top.Count} times.",
+                    Suggestion = $"Change the primary user to {top.Name} (Intune > device > Properties) if the device was handed over.",
+                };
+        }
     }
 
     /// <summary>Serials like "0", "System Serial Number" or "To be filled by O.E.M." are placeholders, not real serials.</summary>

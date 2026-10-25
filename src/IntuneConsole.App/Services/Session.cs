@@ -40,6 +40,7 @@ public sealed class Session
     public DirectoryService? Directory { get; private set; }
     public SecretsService? Secrets { get; private set; }
     public RecordsService? Records { get; private set; }
+    public AppCheckService? AppCheck { get; private set; }
     public DattoClient? Datto { get; private set; }
     public FileDrop? FileDrop { get; private set; }
 
@@ -103,6 +104,7 @@ public sealed class Session
         Directory = null;
         Secrets = null;
         Records = null;
+        AppCheck = null;
         if (settings.IsSignInConfigured)
         {
             // Called on the UI thread; grab the main window handle now so sign-in prompts have a parent.
@@ -114,6 +116,7 @@ public sealed class Session
             Directory = new DirectoryService(graph);
             Secrets = new SecretsService(graph);
             Records = new RecordsService(graph);
+            AppCheck = new AppCheckService(graph, Directory);
         }
 
         var key = CredentialStore.Read(DattoKeySecret);

@@ -51,6 +51,28 @@ public sealed class SecretsService
         return ParseLaps(n?["value"] ?? n);
     }
 
+    /// <summary>When the LAPS password was last backed up, without reading the password itself
+    /// (so nothing is revealed). Null if none is backed up.</summary>
+    public async Task<DateTimeOffset?> GetLapsLastBackupAsync(string entraDeviceId, CancellationToken ct = default)
+    {
+        try
+        {
+            var n = await _graph.GetAsync($"{V1}directory/deviceLocalCredentials/{entraDeviceId}?$select=lastBackupDateTime", ct, ClientHeaders);
+            return (n?["value"] ?? n).Date("lastBackupDateTime");
+        }
+        catch (GraphException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            var objectId = await FindEntraObjectIdAsync(entraDeviceId, ct);
+            if (objectId is null) return null;
+            try
+            {
+                var n = await _graph.GetAsync($"{V1}directory/deviceLocalCredentials/{objectId}?$select=lastBackupDateTime", ct, ClientHeaders);
+                return (n?["value"] ?? n).Date("lastBackupDateTime");
+            }
+            catch (GraphException ex2) when (ex2.StatusCode == HttpStatusCode.NotFound) { return null; }
+        }
+    }
+
     public static LapsInfo? ParseLaps(JsonNode? v)
     {
         if (v is null) return null;

@@ -85,6 +85,40 @@ public sealed class DirectoryService
             .ToList();
     }
 
+    /// <summary>The Windows sign-in app's ID: these events are people signing in to a PC.</summary>
+    public const string WindowsSignInAppId = "38aa3b87-a06d-4817-b275-7a316988d93b";
+
+    /// <summary>Everyone's Windows sign-ins for the last N days (used to spot primary user mismatches).</summary>
+    public async Task<List<SignInEvent>> GetWindowsSignInsAsync(int days = 14, CancellationToken ct = default)
+    {
+        var since = DateTimeOffset.UtcNow.AddDays(-days).ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var filter = $"appId eq '{WindowsSignInAppId}' and createdDateTime ge {since}";
+        var nodes = await _graph.GetAllAsync($"{V1}auditLogs/signIns?$filter={Uri.EscapeDataString(filter)}&$top=1000", maxItems: 50000, ct: ct);
+        return nodes.Select(MapSignIn).ToList();
+    }
+
+    /// <summary>IDs of every group (including nested) the user belongs to. Needs GroupMember.Read.All.</summary>
+    public async Task<HashSet<string>> GetUserGroupIdsAsync(string userId, CancellationToken ct = default)
+    {
+        var nodes = await _graph.GetAllAsync($"{V1}users/{userId}/transitiveMemberOf/microsoft.graph.group?$select=id,displayName&$count=true",
+            ct: ct, headers: GraphClient.EventualConsistency);
+        return new HashSet<string>(nodes.Select(n => n.Str("id") ?? ""), StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>IDs of every group (including nested) the device belongs to, by its Entra device ID.</summary>
+    public async Task<HashSet<string>> GetDeviceGroupIdsAsync(string entraDeviceId, CancellationToken ct = default)
+    {
+        var nodes = await _graph.GetAllAsync($"{V1}devices(deviceId='{entraDeviceId}')/transitiveMemberOf/microsoft.graph.group?$select=id,displayName&$count=true",
+            ct: ct, headers: GraphClient.EventualConsistency);
+        return new HashSet<string>(nodes.Select(n => n.Str("id") ?? ""), StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<string?> GetGroupNameAsync(string groupId, CancellationToken ct = default)
+    {
+        try { return (await _graph.GetAsync($"{V1}groups/{groupId}?$select=displayName", ct)).Str("displayName"); }
+        catch (GraphException) { return null; }
+    }
+
     internal static DirectoryUser MapUser(JsonNode n) => new()
     {
         Id = n.Str("id") ?? "",
@@ -119,6 +153,9 @@ public sealed class DirectoryService
             ErrorCode = (int)(status.Num("errorCode") ?? 0),
             FailureReason = NullIfEmpty(status.Str("failureReason")),
             IsInteractive = n.Bool("isInteractive") ?? false,
+            UserId = n.Str("userId"),
+            UserPrincipalName = n.Str("userPrincipalName"),
+            UserDisplayName = n.Str("userDisplayName"),
         };
     }
 

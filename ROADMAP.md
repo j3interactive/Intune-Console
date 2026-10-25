@@ -104,15 +104,15 @@ These fill gaps that come up in day-to-day troubleshooting. You asked for these 
 - **One-click LAPS password and BitLocker key · Shipped in v0.3.0.** On the device page, with a reason prompt, a logged reveal and a window that closes itself and clears the clipboard.
 - **Record reconciliation · Shipped in v0.3.0** as the *Record health check* screen. Checks: duplicate Intune records per serial, Intune devices not checking in, Intune vs Datto both ways, stale Entra devices, Entra-joined devices missing from Intune, Autopilot devices with no group tag or never enrolled, and Intune devices not registered in Autopilot. Read-only, with CSV export.
 - **Ticket summary export · Shipped in v0.3.0.**
-- **"Why didn't this app install?" check · Next.** For one app and one device, walk through the real reasons: the device isn't in the assigned group, an assignment filter excludes it, a requirement rule failed, a dependency failed, or it's waiting in the IME retry schedule. Intune shows the result but rarely the reason.
+- **"Why didn't this app install?" check · Shipped in v0.3.1.** For one app and one device, walk through the real reasons: the device isn't in the assigned group, an assignment filter excludes it, a requirement rule failed, a dependency failed, or it's waiting in the IME retry schedule. Intune shows the result but rarely the reason.
 
 ### Useful
 
-- **Primary user mismatch.** Flag devices where the person signing in every day isn't the Intune primary user. This breaks user-targeted apps and self-service.
+- **Primary user mismatch · Shipped in v0.3.1** (in the Record health check). Flag devices where the person signing in every day isn't the Intune primary user. This breaks user-targeted apps and self-service.
 - **Health score.** One number per device from compliance, last check-in, disk space, pending reboot, failing apps and Datto alerts. The device list can sort by it so the worst devices come first.
-- **Bulk actions.** Select many devices, or paste a list of names or serials, and sync, collect diagnostics, run a remediation or run a Datto component on all of them, with a progress view.
+- **Bulk actions · Shipped in v0.3.1.** Select many devices, or paste a list of names or serials, and sync, collect diagnostics, run a remediation or run a Datto component on all of them, with a progress view.
 - **Offboarding checklist.** For a leaver: list their devices, mark them for return, set the asset status, retire or wipe once returned, and record who did each step.
-- **New device readiness.** Before handing over a device: Autopilot registered, correct group tag, enrolled, compliant, required apps installed, BitLocker on. Shown as one green or red checklist.
+- **New device readiness · Shipped in v0.3.1.** Before handing over a device: Autopilot registered, correct group tag, enrolled, compliant, required apps installed, BitLocker on. Shown as one green or red checklist.
 
 ### Later
 
@@ -150,4 +150,5 @@ All of them are delegated, so each admin can still only see and do what their ow
 
 ## Open questions
 
-1. After the "why didn't this app install?" check, which of the *Useful* features next? The default order is primary user mismatch, bulk actions, then new device readiness.
+1. Next up is asset management (v0.4). Have you requested Dell TechDirect API access? The warranty lookup needs it.
+2. Health score and the offboarding checklist are the remaining *Useful* features. Offboarding fits best after asset management, since it sets asset status.

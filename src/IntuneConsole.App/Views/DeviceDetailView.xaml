@@ -102,9 +102,10 @@
 
                 <Border Grid.Column="2" Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Ticket summary" Style="{StaticResource H2}"/>
-                        <TextBlock Text="Device, user, health, failing apps and policies, and actions taken, as plain text."
+                        <TextBlock Text="Checks and summary" Style="{StaticResource H2}"/>
+                        <TextBlock Text="Handover readiness as one checklist, or the device's state as text for a ticket."
                                    Style="{StaticResource Label}" Margin="0,2,0,12" TextWrapping="Wrap"/>
+                        <Button Content="Check handover readiness" Click="Readiness_Click" Margin="0,0,0,8"/>
                         <Button Content="Copy ticket summary" Style="{StaticResource PrimaryButton}" Click="CopySummary_Click"/>
                     </StackPanel>
                 </Border>
@@ -122,11 +123,15 @@
                     <Border Style="{StaticResource Card}" Padding="0" Margin="0,0,0,16">
                         <StackPanel>
                             <DockPanel Margin="20,16">
+                                <Button x:Name="AppCheckButton" DockPanel.Dock="Right" Content="Why isn't this installing?" Margin="12,0,0,0"
+                                        Click="AppCheck_Click" VerticalAlignment="Center" IsEnabled="False"
+                                        ToolTip="Select an app, then walk through assignment, filters, requirements, dependencies and the install result"/>
                                 <TextBlock x:Name="AppsSummary" DockPanel.Dock="Right" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
                                 <TextBlock Text="Apps" Style="{StaticResource H2}"/>
                             </DockPanel>
                             <DataGrid x:Name="AppsGrid" RowHeight="NaN" MinRowHeight="38" MaxHeight="420"
-                                      AutomationProperties.Name="App install status">
+                                      AutomationProperties.Name="App install status" SelectionChanged="AppsGrid_SelectionChanged"
+                                      MouseDoubleClick="AppsGrid_MouseDoubleClick">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="APP" Binding="{Binding AppName}" Width="200">
                                         <DataGridTextColumn.ElementStyle>

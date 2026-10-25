@@ -16,6 +16,8 @@
                          ToolTip="Filter by device, user, UPN, serial, model or MAC address"
                          AutomationProperties.Name="Search devices"/>
                 <Button Content="Refresh" Margin="8,0,0,0" Click="Refresh_Click"/>
+                <Button Content="Bulk action…" Margin="8,0,0,0" Click="Bulk_Click"
+                        ToolTip="Run one action on the selected devices (Ctrl/Shift-click to select several), or paste a list"/>
                 <Button Content="Export CSV" Margin="8,0,0,0" Click="Export_Click"/>
             </StackPanel>
             <StackPanel>
@@ -84,7 +86,7 @@
                     </DockPanel>
                 </Border>
 
-                <DataGrid x:Name="DeviceGrid" MouseDoubleClick="Grid_MouseDoubleClick" PreviewKeyDown="Grid_PreviewKeyDown"
+                <DataGrid x:Name="DeviceGrid" SelectionMode="Extended" MouseDoubleClick="Grid_MouseDoubleClick" PreviewKeyDown="Grid_PreviewKeyDown"
                           AutomationProperties.Name="Devices">
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="DEVICE" Width="170" SortMemberPath="DeviceName">

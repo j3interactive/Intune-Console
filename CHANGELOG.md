@@ -2,6 +2,36 @@
 
 Shipped changes to the Intune Troubleshooting Console. Planned work is in [ROADMAP.md](ROADMAP.md).
 
+## v0.3.1 · 2026-10-25
+
+### Added
+
+- **"Why isn't this installing?"** on the device page. Select an app (or double-click it) and the console walks the same gates Intune does, in order:
+  1. Assigned: is the device or its primary user in an assigned group, or is it All devices / All users?
+  2. Not excluded: exclusion groups on the device or the user.
+  3. Intent: Required, Available (needs Company Portal) or Uninstall.
+  4. Assignment filters: the filter rule is evaluated against the device (manufacturer, model, name, OS version, ownership, category, enrollment profile). Rules using properties the console can't see are shown for you to check.
+  5. Requirements: architecture, minimum Windows release, free disk space and memory. Custom registry, file or script rules are listed.
+  6. Dependencies and their install status on the device.
+  7. The device's reported result, with the error explained.
+
+  The first failing gate becomes the verdict. Copy as text for a ticket.
+- **Check handover readiness** on the device page: Autopilot registration and group tag, check-in in the last 24 hours, compliance, BitLocker, failed or pending apps, primary user, Datto agent, and LAPS backup (date only, no password revealed).
+- **Bulk actions** (Bulk action… on the Devices screen). Select devices with Ctrl/Shift-click, or paste names or serial numbers. Actions: sync, collect diagnostics, run an Intune Remediation, restart the IME (Datto), clear the IME download cache (Datto) and restart devices. Shows a live result per device, runs a few devices at a time, can be stopped, and logs every device. Restarting more than five devices asks twice.
+- **Primary user checks in the Record health check**, from the last 14 days of PC sign-ins:
+  - *Primary user mismatch:* the primary user hasn't signed in, and someone else clearly uses the PC. Suggests who to change it to.
+  - *No primary user, one main user:* suggests setting them.
+
+  Shared PCs (no clear main user) aren't flagged.
+
+### Setup needed
+
+- Add `GroupMember.Read.All` and grant admin consent.
+
+### Notes
+
+- 88 automated checks now pass, covering filter evaluation, the app check, readiness, primary user detection and bulk targeting. The Windows UI still hasn't been compiled on Windows.
+
 ## v0.3.0 · 2026-10-25
 
 ### Added

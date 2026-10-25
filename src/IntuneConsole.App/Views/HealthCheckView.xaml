@@ -17,7 +17,7 @@
             <StackPanel>
                 <TextBlock Text="Record health check" Style="{StaticResource H1}"/>
                 <TextBlock x:Name="SubtitleText" Style="{StaticResource MutedText}" Margin="0,4,0,0"
-                           Text="Compares Intune, Entra ID, Autopilot and Datto, and lists devices whose records don't line up. Read-only: nothing is changed."/>
+                           Text="Compares Intune, Entra ID, Autopilot, Datto and who actually signs in to each PC, and lists devices whose records don't line up. Read-only: nothing is changed."/>
             </StackPanel>
         </DockPanel>
 
